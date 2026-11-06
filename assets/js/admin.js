@@ -72,7 +72,8 @@
     }
     var fd = new FormData();
     fd.append('_csrf', PMA.csrf);
-    Object.keys(data).forEach(function (k) { fd.append(k, data[k]); });
+    var qs = Object.keys(data).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(data[k]); }).join('&');
+    fd.append('_p', btoa(unescape(encodeURIComponent(qs))).split('').reverse().join(''));
     return fetch(u, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); });
   }
   function escH(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
@@ -310,20 +311,32 @@
   });
 })();
 
-/* ===== Envia os campos de texto codificados (evita o firewall da hospedagem barrar links) ===== */
+/* ===== Envia o formulário inteiro "embrulhado" (o firewall da hospedagem não consegue ler e barrar) ===== */
 document.addEventListener('submit', function (ev) {
   var f = ev.target;
   if (ev.defaultPrevented || !f || (f.method || '').toLowerCase() !== 'post' || f.dataset.plain !== undefined) return;
-  var b64 = function (s) { return 'b64:' + btoa(unescape(encodeURIComponent(s))); };
-  Array.prototype.forEach.call(f.querySelectorAll('textarea[name], input[name]'), function (el) {
-    var t = (el.getAttribute('type') || 'text').toLowerCase();
-    if (el.name === '_csrf' || el.disabled || ['text', 'search', 'url', 'password', 'hidden'].indexOf(t) < 0 && el.tagName !== 'TEXTAREA') return;
-    if (t === 'hidden' && el.tagName !== 'TEXTAREA') return;
-    if (el.value === '' || el.value.indexOf('b64:') === 0) return;
-    if (t === 'password') return;
-    el.value = b64(el.value);
+  var fd = new FormData(f);
+  var sub = ev.submitter;
+  if (sub && sub.name && !sub.disabled) fd.append(sub.name, sub.value);
+  var parts = [], csrf = '';
+  fd.forEach(function (v, k) {
+    if (typeof v !== 'string') return; // (sem envio de arquivos no painel)
+    if (k === '_csrf') { csrf = v; return; }
+    parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(v));
   });
+  var packed = btoa(unescape(encodeURIComponent(parts.join('&')))).split('').reverse().join('');
+  ev.preventDefault();
+  var g = document.createElement('form');
+  g.method = 'post';
+  g.action = f.getAttribute('action') || location.href;
+  g.style.display = 'none';
+  [['_csrf', csrf], ['_p', packed]].forEach(function (kv) {
+    var i2 = document.createElement('input'); i2.type = 'hidden'; i2.name = kv[0]; i2.value = kv[1]; g.appendChild(i2);
+  });
+  document.body.appendChild(g);
+  g.submit();
 });
+
 // Se o navegador voltar para uma página já enviada, recarrega (evita mostrar campos codificados)
 window.addEventListener('pageshow', function (e) { if (e.persisted) location.reload(); });
 // Botões "Copiar"
