@@ -6,7 +6,9 @@ if (setting('maintenance') === '1') {
     http_response_code(503);
     exit;
 }
+while (ob_get_level() > 0) ob_end_clean();
 header('Content-Type: application/xml; charset=utf-8');
+header('X-Robots-Tag: noindex');
 
 $per = 40000;
 $total = (int)q_val("SELECT COUNT(*) FROM contents WHERE status = 'published'");
@@ -14,6 +16,7 @@ $pages = max(1, (int)ceil($total / $per));
 $p = in_int('p');
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
+echo '<?xml-stylesheet type="text/xsl" href="' . e(url('assets/sitemap.xsl')) . '"?>' . "\n";
 
 // Muitos títulos: gera um índice de sitemaps
 if ($pages > 1 && $p === 0) {
