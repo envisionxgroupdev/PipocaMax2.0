@@ -188,6 +188,67 @@
     if (autoplay && btns[0]) playIn(box, JSON.parse(btns[0].dataset.player));
   }
 
+  /* Tela cheia do player (com virada para horizontal no celular) */
+  var fsIcon = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+  var exitIcon = '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+  var exitBtn = null;
+  function attachExit(box) {
+    if (!exitBtn) return;
+    box.appendChild(exitBtn);
+  }
+  function exitExpanded(box) {
+    box.classList.remove('expanded');
+    document.body.classList.remove('player-open');
+    var fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+    if (fsEl) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); }
+    try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+    if (exitBtn && exitBtn.parentNode !== document.body) document.body.appendChild(exitBtn);
+  }
+  function fakeFull(box) {
+    box.classList.add('expanded');
+    document.body.classList.add('player-open');
+    attachExit(box);
+  }
+  function goFull(box) {
+    var req = box.requestFullscreen || box.webkitRequestFullscreen;
+    if (!req) { fakeFull(box); return; } // iPhone: o player ocupa a tela inteira
+    attachExit(box);
+    try {
+      var r = req.call(box);
+      var lock = function () { try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock('landscape').catch(function () {}); } catch (e) {} };
+      if (r && r.then) r.then(lock).catch(function () { fakeFull(box); }); else lock();
+    } catch (e) { fakeFull(box); }
+  }
+  ['fullscreenchange', 'webkitfullscreenchange'].forEach(function (evn) {
+    document.addEventListener(evn, function () {
+      if (!(document.fullscreenElement || document.webkitFullscreenElement)) {
+        $$('.player').forEach(function (b) { if (!b.classList.contains('expanded')) exitExpanded(b); });
+      }
+    });
+  });
+  $$('[data-player-box]').forEach(function (box) {
+    var bar = document.createElement('div');
+    bar.className = 'player-bar';
+    bar.innerHTML = '<span class="player-tip">Dica: gire o celular para assistir maior</span><button type="button" class="btn btn-sm btn-glass" data-fs>' + fsIcon + ' Tela cheia</button>';
+    box.parentNode.insertBefore(bar, box.nextSibling);
+    bar.querySelector('[data-fs]').addEventListener('click', function () { goFull(box); });
+    // Se trocar de player em tela cheia, o botão de sair continua lá
+    new MutationObserver(function () {
+      var full = box.classList.contains('expanded') || (document.fullscreenElement || document.webkitFullscreenElement) === box;
+      if (full && exitBtn && exitBtn.parentNode !== box) box.appendChild(exitBtn);
+    }).observe(box, { childList: true });
+  });
+  if ($('[data-player-box]')) {
+    exitBtn = document.createElement('button');
+    exitBtn.type = 'button'; exitBtn.className = 'player-exit'; exitBtn.setAttribute('aria-label', 'Sair da tela cheia');
+    exitBtn.innerHTML = exitIcon;
+    document.body.appendChild(exitBtn);
+    exitBtn.addEventListener('click', function (ev) { ev.stopPropagation(); $$('.player').forEach(exitExpanded); });
+  }
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Escape') $$('.player.expanded').forEach(exitExpanded);
+  });
+
   // Filme
   var watch = $('[data-watch]');
   if (watch) {

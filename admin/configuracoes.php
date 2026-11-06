@@ -127,8 +127,10 @@ admin_header('Configurações', 'config');
           Envie esse endereço no <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a> › Sitemaps. Ele se atualiza sozinho a cada título publicado.<br>
           <span class="muted">Obs.: aberto no celular, o sitemap pode aparecer em branco ou como texto corrido. É normal: ele é feito para o Google ler, não para pessoas.</span>
         </div>
-        <button class="btn btn-red">Salvar</button>
-        <button class="btn" name="section" value="checksitemap" formnovalidate><?= icon('check') ?> Verificar sitemap</button>
+        <div class="btn-row">
+          <button class="btn btn-red">Salvar</button>
+          <button class="btn" name="section" value="checksitemap" formnovalidate><?= icon('check') ?> Verificar sitemap</button>
+        </div>
       </form>
     </section>
 
