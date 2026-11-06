@@ -233,6 +233,9 @@ admin_header($isNew ? 'Novo ' . mb_strtolower(type_label($type)) : $c['title'], 
   <?php $apiEp = $seasons ? api_players_episode($c, (int)$seasons[0]['season_number'], 1) : []; ?>
   <div class="api-box">
     <div class="api-box-head"><b><?= icon('live') ?> Players da sua API</b><span class="pill <?= $apiEp ? 'pill-ok' : 'pill-warn' ?>"><?= $apiEp ? 'Ativo em todos os episódios' : 'Não configurado' ?></span></div>
+    <?php if ($apiEp && !preg_match('/\{(temporada2?)\}/', (string)setting('episode_player_templates'))): ?>
+      <div class="alert alert-error" style="margin:8px 0 0">O link da API de episódios está sem <b>temporada</b> e <b>episódio</b>, então todos os episódios abrem o mesmo vídeo. Corrija em <a href="<?= e(url('admin/configuracoes.php#players')) ?>">Configurações › API de players</a>.</div>
+    <?php endif; ?>
     <?php if ($apiEp): ?>
       <p class="muted small">Todos os episódios já têm player automático. Exemplo (T<?= (int)$seasons[0]['season_number'] ?>:E1): <a href="<?= e($apiEp[0]['url']) ?>" target="_blank" rel="noopener"><?= e($apiEp[0]['url']) ?></a></p>
     <?php elseif (!api_has_episode_players()): ?>

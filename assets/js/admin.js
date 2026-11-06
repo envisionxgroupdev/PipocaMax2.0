@@ -251,6 +251,7 @@
       box.innerHTML = rows.map(function (r, i) {
         var bad = r.url && !/^https?:\/\//i.test(r.url);
         var noVar = r.url && !/\{(tmdb_id|imdb_id)\}/.test(r.url);
+        var noEp = kind === 'episode' && r.url && !noVar && !(/\{(temporada2?)\}/.test(r.url) && /\{(episodio2?)\}/.test(r.url));
         return '<div class="ab-row" data-i="' + i + '">' +
           '<div class="ab-top"><input class="ab-name" placeholder="Nome (ex: Dublado)" value="' + esc(r.name) + '">' +
           '<input class="ab-audio" placeholder="Áudio (opcional)" list="ab-audios" value="' + esc(r.audio) + '">' +
@@ -259,9 +260,10 @@
           '<div class="ab-chips"><span class="muted small">Inserir no link:</span>' + vars.map(function (v) {
             return '<button type="button" class="chip-btn" data-var="' + v + '">' + LABEL[v] + '</button>';
           }).join('') + '</div>' +
-          (r.url ? '<div class="ab-preview ' + (bad || noVar ? 'warn' : 'ok') + '">' +
+          (r.url ? '<div class="ab-preview ' + (bad || noVar || noEp ? 'warn' : 'ok') + '">' +
             (bad ? '⚠ O link precisa começar com http:// ou https://' :
              noVar ? '⚠ Falta o ID: apague o número do ' + (kind === 'movie' ? 'filme' : 'título') + ' no link e toque em <b>ID TMDB</b> (ou <b>ID IMDb</b>)' :
+             noEp ? '⚠ Falta a temporada e o episódio no link: sem eles, todos os episódios abrem o mesmo vídeo. Toque em <b>Temporada</b> e <b>Episódio</b> nos lugares certos do link.' :
              'Exemplo de como fica: <a href="' + esc(sample(r.url)) + '" target="_blank" rel="noopener">' + esc(sample(r.url)) + '</a>') + '</div>' : '') +
           '</div>';
       }).join('') + '<button type="button" class="btn btn-sm ab-add">+ Adicionar outro player</button>' +
