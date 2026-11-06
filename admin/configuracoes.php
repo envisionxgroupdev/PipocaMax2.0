@@ -20,6 +20,9 @@ if (is_post()) {
             $ga = strtoupper(in_str('google_analytics'));
             set_setting('google_analytics', preg_match('/^G-[A-Z0-9]+$/', $ga) ? $ga : '');
             break;
+        case 'clearlog':
+            @unlink(PM_LOG);
+            break;
         case 'acesso':
             set_setting('allow_register', isset($_POST['allow_register']) ? '1' : '0');
             set_setting('require_login', isset($_POST['require_login']) ? '1' : '0');
@@ -164,8 +167,14 @@ admin_header('Configurações', 'config');
         <li><span>Versão do <?= e(site_name()) ?></span><b><?= PM_VERSION ?></b></li>
         <li><span>PHP</span><b><?= PHP_VERSION ?></b></li>
         <li><span>MySQL</span><b><?= e((string)q_val('SELECT VERSION()')) ?></b></li>
+        <li><span>Últimos erros registrados</span><b><?= is_file(PM_LOG) ? count(file(PM_LOG)) : 0 ?></b></li>
         <li><span>Pasta de instalação</span><b><?= is_dir(PM_ROOT . '/install') ? '<span class="pill pill-warn">Apague a pasta /install</span>' : 'Removida ✓' ?></b></li>
       </ul>
+      <?php if (is_file(PM_LOG)): $lines = array_slice(file(PM_LOG, FILE_IGNORE_NEW_LINES), -15); ?>
+        <h3 class="sub-title">Registro de erros (mais recentes embaixo)</h3>
+        <pre class="errlog"><?= e(implode("\n", $lines)) ?></pre>
+        <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="section" value="clearlog"><button class="btn btn-sm">Limpar registro</button></form>
+      <?php endif; ?>
     </section>
   </div>
 </div>

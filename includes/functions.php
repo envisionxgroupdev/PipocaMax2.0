@@ -176,8 +176,9 @@ function csrf_check(): void
 {
     $sent = $_POST['_csrf'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
     if (!is_string($sent) || !hash_equals(csrf_token(), $sent)) {
+        pm_log_error('Token de segurança inválido (sessão expirada ou cookie bloqueado)');
         http_response_code(419);
-        exit('Sessão expirada. Volte, atualize a página e tente novamente.');
+        exit('<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="background:#0b0b0b;color:#eee;font-family:sans-serif;padding:40px;text-align:center"><h2 style="color:#e50914">Sessão expirada</h2><p>Volte, atualize a página e tente salvar de novo.</p><p><a style="color:#e50914" href="javascript:history.back()">Voltar</a></p></body>');
     }
 }
 

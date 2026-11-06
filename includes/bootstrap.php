@@ -5,7 +5,35 @@
 declare(strict_types=1);
 
 define('PM_ROOT', dirname(__DIR__));
-define('PM_VERSION', '2.0.0');
+define('PM_VERSION', '2.0.3');
+define('PM_LOG', PM_ROOT . '/includes/logs/erros.log');
+
+/** Registro de erros: grava em includes/logs/erros.log (protegido) e mostra uma página amigável */
+function pm_log_error(string $msg): string
+{
+    $code = substr(md5($msg . microtime()), 0, 6);
+    $dir = dirname(PM_LOG);
+    if (!is_dir($dir)) @mkdir($dir, 0750, true);
+    if (is_file(PM_LOG) && filesize(PM_LOG) > 512000) @rename(PM_LOG, PM_LOG . '.old');
+    @file_put_contents(PM_LOG, '[' . date('d/m/Y H:i:s') . '] [' . $code . '] ' . ($_SERVER['REQUEST_METHOD'] ?? '') . ' ' . ($_SERVER['REQUEST_URI'] ?? '') . ' — ' . $msg . "\n", FILE_APPEND | LOCK_EX);
+    return $code;
+}
+function pm_error_page(string $code): void
+{
+    if (!headers_sent()) http_response_code(500);
+    echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body style="background:#0b0b0b;color:#eee;font-family:sans-serif;padding:40px;text-align:center">'
+       . '<h2 style="color:#e50914">Ops, algo deu errado</h2><p>Código do erro: <b>' . htmlspecialchars($code) . '</b></p>'
+       . '<p style="color:#999">O erro foi registrado no painel (Configurações › Sistema).</p><p><a style="color:#e50914" href="javascript:history.back()">Voltar</a></p></body>';
+}
+set_exception_handler(function (Throwable $e) {
+    pm_error_page(pm_log_error(get_class($e) . ': ' . $e->getMessage() . ' em ' . basename($e->getFile()) . ':' . $e->getLine()));
+});
+register_shutdown_function(function () {
+    $e = error_get_last();
+    if ($e && in_array($e['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        pm_error_page(pm_log_error('Erro fatal: ' . $e['message'] . ' em ' . basename($e['file']) . ':' . $e['line']));
+    }
+});
 
 mb_internal_encoding('UTF-8');
 date_default_timezone_set('America/Sao_Paulo');
