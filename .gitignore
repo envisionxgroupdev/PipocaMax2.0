@@ -1,0 +1,4 @@
+# Dados do banco (ficam só no servidor)
+config.php
+.DS_Store
+Thumbs.db

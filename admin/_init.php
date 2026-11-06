@@ -1,0 +1,136 @@
+<?php
+/**
+ * Inicialização do painel administrativo.
+ */
+require_once dirname(__DIR__) . '/includes/bootstrap.php';
+require_once PM_ROOT . '/includes/icons.php';
+require_admin();
+header('Cache-Control: no-store, no-cache, must-revalidate');
+
+function admin_header(string $title, string $active = ''): void
+{
+    $u = current_user();
+    $openReports = (int)q_val("SELECT COUNT(*) FROM reports WHERE status = 'open'");
+    $menu = [
+        ['dashboard', 'index.php', 'Dashboard', 'grid'],
+        ['conteudos', 'conteudos.php', 'Conteúdos', 'film'],
+        ['importar', 'importar.php', 'Importar do TMDB', 'download'],
+        ['canais', 'canais.php', 'TV Online', 'live'],
+        ['usuarios', 'usuarios.php', 'Usuários', 'users'],
+        ['reportes', 'reportes.php', 'Reportes', 'flag', $openReports],
+        ['config', 'configuracoes.php', 'Configurações', 'settings'],
+    ];
+    ?><!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title><?= e($title) ?> • Painel <?= e(site_name()) ?></title>
+<link rel="icon" href="<?= e(asset('img/favicon.svg')) ?>" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="<?= e(asset('css/admin.css')) ?>">
+</head>
+<body>
+<aside class="side" id="side">
+  <div class="side-head"><?= logo_html() ?><span class="side-badge">ADMIN</span></div>
+  <nav class="side-nav">
+    <?php foreach ($menu as $m): ?>
+      <a href="<?= e(url('admin/' . $m[1])) ?>" class="<?= $active === $m[0] ? 'active' : '' ?>"><?= icon($m[3]) ?><span><?= e($m[2]) ?></span><?php if (!empty($m[4])): ?><b class="count"><?= (int)$m[4] ?></b><?php endif; ?></a>
+    <?php endforeach; ?>
+  </nav>
+  <div class="side-foot">
+    <a href="<?= e(url('index.php')) ?>" target="_blank"><?= icon('external') ?><span>Ver o site</span></a>
+    <a href="<?= e(url('logout.php?t=' . csrf_token())) ?>"><?= icon('logout') ?><span>Sair</span></a>
+  </div>
+</aside>
+<div class="side-overlay" id="side-overlay"></div>
+<div class="wrap">
+  <header class="top">
+    <button class="burger" id="burger" aria-label="Menu"><?= icon('menu') ?></button>
+    <h1><?= e($title) ?></h1>
+    <div class="top-right">
+      <?php if (setting('maintenance') === '1'): ?><a class="pill pill-warn" href="<?= e(url('admin/configuracoes.php#manutencao')) ?>">Manutenção ativa</a><?php endif; ?>
+      <span class="who"><span class="avatar" style="background:<?= e($u['avatar_color']) ?>"><?= e(mb_strtoupper(mb_substr($u['name'], 0, 1))) ?></span><span class="who-name"><?= e($u['name']) ?></span></span>
+    </div>
+  </header>
+  <main class="content">
+    <?= flashes() ?>
+<?php
+}
+
+function admin_footer(): void
+{
+    ?>
+  </main>
+</div>
+<script>window.PM = { base: <?= json_encode(BASE_URL) ?>, csrf: <?= json_encode(csrf_token()) ?> };</script>
+<script src="<?= e(asset('js/admin.js')) ?>"></script>
+</body>
+</html>
+<?php
+}
+
+/** Formulário de confirmação de exclusão (botão) */
+function delete_button(string $action, array $fields, string $label = 'Excluir', string $confirm = 'Tem certeza que deseja excluir?'): string
+{
+    $html = '<form method="post" action="' . e($action) . '" class="inline" data-confirm="' . e($confirm) . '">' . csrf_field();
+    foreach ($fields as $k => $v) {
+        $html .= '<input type="hidden" name="' . e($k) . '" value="' . e($v) . '">';
+    }
+    return $html . '<button class="btn-ghost danger" title="' . e($label) . '">' . icon('trash') . '</button></form>';
+}
+
+/** Editor de players (filmes e episódios) */
+function players_editor(array $players, string $owner, int $ownerId, string $back): void
+{
+    ?>
+    <div class="players">
+      <?php if (!$players): ?><p class="muted">Nenhum player cadastrado ainda.</p><?php endif; ?>
+      <?php foreach ($players as $i => $p): ?>
+        <form class="player-row" method="post" action="<?= e(url('admin/players.php')) ?>">
+          <?= csrf_field() ?>
+          <input type="hidden" name="id" value="<?= (int)$p['id'] ?>">
+          <input type="hidden" name="back" value="<?= e($back) ?>">
+          <span class="drag"><?= $i + 1 ?></span>
+          <input name="name" value="<?= e($p['name']) ?>" placeholder="Nome" class="w-name" required>
+          <input name="url" value="<?= e($p['url']) ?>" placeholder="URL do player / embed / .mp4 / .m3u8" class="w-url" required>
+          <select name="kind" class="w-kind">
+            <?php foreach (['embed' => 'Embed (iframe)', 'video' => 'Vídeo (MP4)', 'hls' => 'HLS (.m3u8)'] as $k => $l): ?>
+              <option value="<?= $k ?>" <?= $p['kind'] === $k ? 'selected' : '' ?>><?= $l ?></option>
+            <?php endforeach; ?>
+          </select>
+          <input name="audio" value="<?= e($p['audio']) ?>" placeholder="Áudio" class="w-small" list="audios">
+          <input name="quality" value="<?= e($p['quality']) ?>" placeholder="Qualidade" class="w-small" list="qualities">
+          <div class="row-actions">
+            <button name="action" value="up" class="btn-ghost" title="Subir" <?= $i === 0 ? 'disabled' : '' ?>>↑</button>
+            <button name="action" value="down" class="btn-ghost" title="Descer" <?= $i === count($players) - 1 ? 'disabled' : '' ?>>↓</button>
+            <a class="btn-ghost" href="<?= e($p['url']) ?>" target="_blank" rel="noopener" title="Testar"><?= icon('external') ?></a>
+            <button name="action" value="save" class="btn btn-sm">Salvar</button>
+            <button name="action" value="delete" class="btn-ghost danger" title="Excluir" data-confirm-click="Excluir este player?"><?= icon('trash') ?></button>
+          </div>
+        </form>
+      <?php endforeach; ?>
+
+      <form class="player-row new" method="post" action="<?= e(url('admin/players.php')) ?>">
+        <?= csrf_field() ?>
+        <input type="hidden" name="<?= e($owner) ?>" value="<?= $ownerId ?>">
+        <input type="hidden" name="back" value="<?= e($back) ?>">
+        <span class="drag">+</span>
+        <input name="name" placeholder="Nome (ex: Player 1)" class="w-name" value="Player <?= count($players) + 1 ?>" required>
+        <input name="url" placeholder="Cole aqui a URL do player" class="w-url" required>
+        <select name="kind" class="w-kind">
+          <option value="auto">Detectar tipo</option>
+          <option value="embed">Embed (iframe)</option>
+          <option value="video">Vídeo (MP4)</option>
+          <option value="hls">HLS (.m3u8)</option>
+        </select>
+        <input name="audio" placeholder="Áudio" class="w-small" list="audios">
+        <input name="quality" placeholder="Qualidade" class="w-small" list="qualities">
+        <div class="row-actions"><button name="action" value="add" class="btn btn-sm btn-red"><?= icon('plus') ?> Adicionar</button></div>
+      </form>
+      <datalist id="audios"><option>Dublado</option><option>Legendado</option><option>Dual Áudio</option><option>Nacional</option></datalist>
+      <datalist id="qualities"><option>4K</option><option>FHD</option><option>HD</option><option>SD</option><option>CAM</option></datalist>
+    </div>
+    <?php
+}

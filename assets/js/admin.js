@@ -1,0 +1,215 @@
+/* Pipoca Max — painel administrativo */
+(function () {
+  'use strict';
+  var $$ = function (s, c) { return Array.prototype.slice.call((c || document).querySelectorAll(s)); };
+
+  // Menu lateral no celular
+  var side = document.getElementById('side'), ov = document.getElementById('side-overlay'), burger = document.getElementById('burger');
+  if (burger) burger.addEventListener('click', function () { side.classList.toggle('open'); ov.classList.toggle('open'); });
+  if (ov) ov.addEventListener('click', function () { side.classList.remove('open'); ov.classList.remove('open'); });
+
+  // Confirmações
+  $$('form[data-confirm]').forEach(function (f) {
+    f.addEventListener('submit', function (ev) { if (!confirm(f.dataset.confirm)) ev.preventDefault(); });
+  });
+  $$('[data-confirm-click]').forEach(function (b) {
+    b.addEventListener('click', function (ev) { if (!confirm(b.dataset.confirmClick)) ev.preventDefault(); });
+  });
+
+  // Selecionar todos
+  $$('[data-check-all]').forEach(function (all) {
+    all.addEventListener('change', function () {
+      var name = all.dataset.checkAll;
+      var sel = name ? 'input[name="' + name + '[]"]' : 'td.chk input[type=checkbox]';
+      $$(sel).forEach(function (c) { c.checked = all.checked; });
+    });
+  });
+
+  // Prévia de imagens
+  function imgUrl(v, size) {
+    if (!v) return '';
+    if (/^https?:\/\//.test(v)) return v;
+    if (v.charAt(0) === '/') return 'https://image.tmdb.org/t/p/' + size + v;
+    return v;
+  }
+  $$('[data-preview]').forEach(function (inp) {
+    var target = document.getElementById(inp.dataset.preview);
+    if (!target) return;
+    inp.addEventListener('input', function () {
+      var u = imgUrl(inp.value.trim(), target.classList.contains('wide') ? 'w500' : 'w185');
+      if (u) target.src = u;
+    });
+  });
+
+  // Tela de carregamento para ações demoradas (importação)
+  $$('[data-loading]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var form = b.form;
+      if (!form) return;
+      form.addEventListener('submit', function handler(ev) {
+        form.removeEventListener('submit', handler);
+        if (ev.defaultPrevented) return;
+        var o = document.createElement('div');
+        o.className = 'loading-overlay';
+        o.innerHTML = '<div><div class="spin"></div>' + b.dataset.loading + '</div>';
+        document.body.appendChild(o);
+      });
+    });
+  });
+
+  // Clicar no pôster marca o checkbox (importação)
+  $$('.tmdb-poster').forEach(function (l) {
+    var c = l.querySelector('.tmdb-check');
+    if (c) l.closest('.tmdb-item').classList.toggle('sel', c.checked);
+  });
+
+  /* ===== Fila de importação (TMDB) ===== */
+  var PMA = window.PM || {};
+  function ajax(action, data, method) {
+    var u = PMA.base + '/admin/ajax.php?action=' + action;
+    if (method === 'GET') {
+      return fetch(u + '&' + new URLSearchParams(data), { credentials: 'same-origin' }).then(function (r) { return r.json(); });
+    }
+    var fd = new FormData();
+    fd.append('_csrf', PMA.csrf);
+    Object.keys(data).forEach(function (k) { fd.append(k, data[k]); });
+    return fetch(u, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); });
+  }
+  function escH(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  var Q = document.getElementById('queue');
+  function runQueue(items, opts) {
+    if (!Q || !items.length) return;
+    var el = function (id) { return document.getElementById(id); };
+    var total = items.length, done = 0, ok = 0, skip = 0, err = 0, stopped = false, idx = 0;
+    Q.hidden = false;
+    el('q-log').innerHTML = '';
+    el('q-done').hidden = true; el('q-close').hidden = true; el('q-stop').hidden = false;
+    el('q-title').textContent = 'Importando ' + total + ' título(s)…';
+    var update = function () {
+      el('q-ok').textContent = ok; el('q-skip').textContent = skip; el('q-err').textContent = err;
+      el('q-bar').style.width = Math.round(done / total * 100) + '%';
+      el('q-status').textContent = done + ' de ' + total;
+    };
+    var log = function (cls, html) {
+      var li = document.createElement('li'); li.className = cls; li.innerHTML = html;
+      el('q-log').insertBefore(li, el('q-log').firstChild);
+    };
+    var finish = function () {
+      el('q-title').textContent = stopped ? 'Importação interrompida' : 'Importação concluída!';
+      el('q-stop').hidden = true; el('q-done').hidden = false; el('q-close').hidden = false;
+    };
+    el('q-stop').onclick = function () { stopped = true; el('q-stop').disabled = true; };
+    el('q-close').onclick = function () { location.reload(); };
+    update();
+    var worker = function () {
+      if (stopped || idx >= items.length) return Promise.resolve();
+      var it = items[idx++];
+      var data = { item: it.item, type: it.type, skip_existing: opts.update ? '0' : '1',
+        is_release: opts.release ? '1' : '0', featured: opts.featured ? '1' : '0', draft: opts.draft ? '1' : '0' };
+      return ajax('import_one', data).then(function (j) {
+        if (j.ok && j.skipped) { skip++; log('skip', '↷ <b>' + escH(j.title) + '</b> <small>já estava no site</small>'); }
+        else if (j.ok) { ok++; log('ok', (j.poster ? '<img src="' + escH(j.poster) + '" alt="">' : '') + '✓ <b>' + escH(j.title) + '</b> <small>' + (j.year || '') + (j.episodes ? ' • ' + j.episodes + ' episódios' : '') + (j.updated ? ' • atualizado' : '') + '</small>'); }
+        else { err++; log('err', '✕ <b>' + escH(it.label || it.item) + '</b> <small>' + escH(j.error || 'erro') + '</small>'); }
+      }).catch(function () { err++; log('err', '✕ <b>' + escH(it.label || it.item) + '</b> <small>falha de conexão</small>'); })
+        .then(function () { done++; update(); return worker(); });
+    };
+    Promise.all([worker(), worker()]).then(finish);
+  }
+
+  // Aba "Em massa"
+  var bi = document.getElementById('bulk-items');
+  if (bi) {
+    var lines = function () { return bi.value.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(Boolean); };
+    bi.addEventListener('input', function () { document.getElementById('bulk-count').textContent = lines().length + ' título(s)'; });
+    document.getElementById('bulk-start').addEventListener('click', function () {
+      var type = document.getElementById('bulk-type').value;
+      var uniq = lines().filter(function (v, i, a) { return a.indexOf(v) === i; });
+      if (!uniq.length) { alert('Cole pelo menos um título.'); return; }
+      runQueue(uniq.map(function (l) { return { item: l, type: type }; }), {
+        release: document.getElementById('bulk-release').checked, featured: document.getElementById('bulk-featured').checked,
+        draft: document.getElementById('bulk-draft').checked, update: document.getElementById('bulk-update').checked
+      });
+    });
+  }
+
+  // Aba "Listas inteiras"
+  var ls = document.getElementById('list-start');
+  if (ls) ls.addEventListener('click', function () {
+    var sel = document.getElementById('list-name');
+    var type = sel.options[sel.selectedIndex].dataset.type;
+    var from = Math.max(1, +document.getElementById('list-from').value || 1);
+    var to = Math.max(from, +document.getElementById('list-to').value || from);
+    if (to - from > 24) { alert('Faça no máximo 25 páginas (500 títulos) por vez.'); return; }
+    ls.disabled = true; ls.textContent = 'Lendo a lista…';
+    var pages = [], items = [];
+    for (var p = from; p <= to; p++) pages.push(p);
+    pages.reduce(function (pr, pg) {
+      return pr.then(function () {
+        return ajax('list', { list: sel.value, page: pg }, 'GET').then(function (j) {
+          (j.results || []).forEach(function (r) { items.push({ item: String(r.tmdb_id), type: type, label: r.title }); });
+        });
+      });
+    }, Promise.resolve()).then(function () {
+      ls.disabled = false; ls.textContent = 'Importar lista';
+      runQueue(items, { release: document.getElementById('list-release').checked });
+    });
+  });
+
+  // Aba "Buscar": selecionados e botão individual
+  var collect = function (els) {
+    return els.map(function (item) {
+      return { item: item.dataset.tmdb, type: item.querySelector('[data-type]').value, label: item.querySelector('b').textContent };
+    });
+  };
+  var flags = function () {
+    var r = document.getElementById('sel-release'), f = document.getElementById('sel-featured');
+    return { release: r && r.checked, featured: f && f.checked };
+  };
+  var ss = document.getElementById('sel-start');
+  if (ss) ss.addEventListener('click', function () {
+    var items = $$('.tmdb-check:checked').map(function (c) { return c.closest('.tmdb-item'); });
+    if (!items.length) { alert('Marque os títulos que quer importar.'); return; }
+    runQueue(collect(items), flags());
+  });
+  $$('[data-import-one]').forEach(function (b) {
+    b.addEventListener('click', function () { runQueue(collect([b.closest('.tmdb-item')]), flags()); });
+  });
+
+  /* ===== "Puxar dados do TMDB" no cadastro ===== */
+  var ts = document.querySelector('[data-tmdb-search]');
+  if (ts) {
+    var input = ts.querySelector('[data-q]'), box = document.querySelector('[data-results]'), form = document.querySelector('[data-fetch-form]');
+    var go = function () {
+      var q = input.value.trim();
+      if (!q) return;
+      box.innerHTML = '<p class="muted">Buscando…</p>';
+      ajax('search', { q: q, kind: ts.dataset.kind }, 'GET').then(function (j) {
+        if (j.error) { box.innerHTML = '<div class="alert alert-error">' + escH(j.error) + '</div>'; return; }
+        if (!j.results.length) { box.innerHTML = '<p class="muted">Nada encontrado.</p>'; return; }
+        box.innerHTML = j.results.map(function (r) {
+          return '<div class="tmdb-item' + (r.local_id ? ' has' : '') + '"><div class="tmdb-poster"><img src="' + escH(r.poster_url) + '" alt="">' +
+            (r.rating ? '<span class="tmdb-rating">★ ' + r.rating + '</span>' : '') + (r.local_id ? '<span class="tmdb-has">No site</span>' : '') + '</div>' +
+            '<div class="tmdb-info"><b>' + escH(r.title) + '</b><small>' + escH(r.year || '—') + '</small>' +
+            (r.local_id ? '<a class="btn btn-sm" href="' + PMA.base + '/admin/conteudo.php?id=' + r.local_id + '">Editar</a>'
+              : '<button type="button" class="btn btn-sm btn-red" data-pick="' + r.tmdb_id + '">Puxar dados</button>') + '</div></div>';
+        }).join('');
+      });
+    };
+    ts.querySelector('[data-go]').addEventListener('click', go);
+    input.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') { ev.preventDefault(); go(); } });
+    box.addEventListener('click', function (ev) {
+      var b = ev.target.closest('[data-pick]');
+      if (!b) return;
+      form.querySelector('[name=tmdb_id]').value = b.dataset.pick;
+      $$('[data-flag]').forEach(function (c) {
+        if (c.checked) { var h = document.createElement('input'); h.type = 'hidden'; h.name = c.dataset.flag; h.value = '1'; form.appendChild(h); }
+      });
+      var o = document.createElement('div');
+      o.className = 'loading-overlay';
+      o.innerHTML = '<div><div class="spin"></div>Puxando dados do TMDB…</div>';
+      document.body.appendChild(o);
+      form.submit();
+    });
+  }
+})();
