@@ -204,6 +204,21 @@ admin_header('Configurações', 'config');
         <li><span>Versão do <?= e(site_name()) ?></span><b><?= PM_VERSION ?></b></li>
         <li><span>PHP</span><b><?= PHP_VERSION ?></b></li>
         <li><span>MySQL</span><b><?= e((string)q_val('SELECT VERSION()')) ?></b></li>
+        <?php
+          global $CONFIG;
+          $dbHost = (string)($CONFIG['db']['host'] ?? '');
+          $isLocal = in_array(strtolower($dbHost), ['localhost', '127.0.0.1', '::1'], true);
+          $outIp = '';
+          if (function_exists('curl_init')) {
+              $ch = curl_init('https://api.ipify.org');
+              curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 3, CURLOPT_CONNECTTIMEOUT => 2]);
+              $outIp = trim((string)curl_exec($ch));
+              curl_close($ch);
+              if (!filter_var($outIp, FILTER_VALIDATE_IP)) $outIp = '';
+          }
+        ?>
+        <li><span>Servidor do banco (config.php)</span><b><?= e($dbHost) ?> <span class="pill <?= $isLocal ? 'pill-ok' : 'pill-warn' ?>"><?= $isLocal ? 'local ✓' : 'remoto' ?></span></b></li>
+        <li><span>IP de saída deste site</span><b><?= $outIp !== '' ? e($outIp) : '<span class="muted">não identificado</span>' ?></b></li>
         <li><span>Últimos erros registrados</span><b><?= is_file(PM_LOG) ? count(file(PM_LOG)) : 0 ?></b></li>
         <li><span>Instalador (/install)</span><b><span class="pill pill-ok">Trancado ✓</span></b></li>
       </ul>
