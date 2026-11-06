@@ -16,7 +16,6 @@ $pages = max(1, (int)ceil($total / $per));
 $p = in_int('p');
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
-echo '<?xml-stylesheet type="text/xsl" href="' . e(url('assets/sitemap.xsl')) . '"?>' . "\n";
 
 // Muitos títulos: gera um índice de sitemaps
 if ($pages > 1 && $p === 0) {

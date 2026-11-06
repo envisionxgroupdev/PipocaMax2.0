@@ -20,6 +20,35 @@ if (is_post()) {
             $ga = strtoupper(in_str('google_analytics'));
             set_setting('google_analytics', preg_match('/^G-[A-Z0-9]+$/', $ga) ? $ga : '');
             break;
+        case 'checksitemap':
+            // Testa o sitemap do jeito que o Google acessa
+            $smUrl = site_url(pretty_urls() ? url('sitemap.xml') : url('sitemap.php'));
+            $body = false; $code = 0;
+            if (function_exists('curl_init')) {
+                $ch = curl_init($smUrl);
+                curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_FOLLOWLOCATION => true, CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; Googlebot/2.1)']);
+                $body = curl_exec($ch);
+                $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+            }
+            if ($body !== false && $code === 200 && str_starts_with(ltrim((string)$body), '<?xml')) {
+                libxml_use_internal_errors(true);
+                $xml = simplexml_load_string((string)$body);
+                if ($xml !== false) {
+                    $n = isset($xml->url) ? count($xml->url) : count($xml->sitemap);
+                    flash('success', "Sitemap funcionando! O Google vai encontrar $n endereço(s) em $smUrl");
+                } else {
+                    flash('error', 'O sitemap abriu, mas o conteúdo veio com defeito. Me mande um print desta mensagem.');
+                }
+            } elseif ($body !== false && $code === 404 && pretty_urls()) {
+                flash('error', "O endereço $smUrl deu \"não encontrado\" (404): o servidor não está aplicando os links amigáveis. Envie ao Google o endereço " . site_url(url('sitemap.php')) . ' enquanto isso.');
+            } elseif ($body !== false) {
+                flash('error', "O sitemap respondeu com erro $code. Me mande um print desta mensagem.");
+            } else {
+                flash('info', 'Não consegui testar daqui (a hospedagem bloqueia o site de acessar ele mesmo). O sitemap tem ' . ((int)q_val("SELECT COUNT(*) FROM contents WHERE status = 'published'") + 6) . ' endereços. Confira pelo Google Search Console.');
+            }
+            redirect('admin/configuracoes.php#seo');
+
         case 'clearlog':
             @unlink(PM_LOG);
             break;
@@ -91,9 +120,11 @@ admin_header('Configurações', 'config');
         </div>
         <div class="help" style="margin:14px 0">
           <b>Mapa do site para o Google:</b> <a href="<?= e(site_url(pretty_urls() ? url('sitemap.xml') : url('sitemap.php'))) ?>" target="_blank"><?= e(site_url(pretty_urls() ? url('sitemap.xml') : url('sitemap.php'))) ?></a><br>
-          Envie esse endereço no <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a> › Sitemaps. Ele se atualiza sozinho a cada título publicado.
+          Envie esse endereço no <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a> › Sitemaps. Ele se atualiza sozinho a cada título publicado.<br>
+          <span class="muted">Obs.: aberto no celular, o sitemap pode aparecer em branco ou como texto corrido. É normal: ele é feito para o Google ler, não para pessoas.</span>
         </div>
         <button class="btn btn-red">Salvar</button>
+        <button class="btn" name="section" value="checksitemap" formnovalidate><?= icon('check') ?> Verificar sitemap</button>
       </form>
     </section>
 
