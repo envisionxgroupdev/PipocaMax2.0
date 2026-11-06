@@ -15,6 +15,7 @@ function admin_header(string $title, string $active = ''): void
         ['dashboard', 'index.php', 'Dashboard', 'grid'],
         ['conteudos', 'conteudos.php', 'Conteúdos', 'film'],
         ['importar', 'importar.php', 'Importar do TMDB', 'download'],
+        ['auto', 'automatico.php', 'Importação automática', 'wrench'],
         ['canais', 'canais.php', 'TV Online', 'live'],
         ['usuarios', 'usuarios.php', 'Usuários', 'users'],
         ['reportes', 'reportes.php', 'Reportes', 'flag', $openReports],

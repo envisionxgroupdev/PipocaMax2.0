@@ -250,6 +250,7 @@ function paginate(int $total, int $perPage, int $page, string $baseUrl): string
 /* ---------- Manutenção ---------- */
 function check_maintenance(): void
 {
+    auto_maybe_run_on_visit();
     if (setting('maintenance') === '1' && !is_admin()) {
         http_response_code(503);
         header('Retry-After: 3600');

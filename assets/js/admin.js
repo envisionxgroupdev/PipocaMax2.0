@@ -319,3 +319,12 @@ document.addEventListener('submit', function (ev) {
 });
 // Se o navegador voltar para uma página já enviada, recarrega (evita mostrar campos codificados)
 window.addEventListener('pageshow', function (e) { if (e.persisted) location.reload(); });
+// Botões "Copiar"
+document.querySelectorAll('[data-copy]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var t = document.getElementById(b.dataset.copy).textContent;
+    var done = function () { var o = b.textContent; b.textContent = 'Copiado!'; setTimeout(function () { b.textContent = o; }, 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText(t).then(done, function () { prompt('Copie:', t); });
+    else prompt('Copie:', t);
+  });
+});

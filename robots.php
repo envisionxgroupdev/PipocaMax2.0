@@ -10,7 +10,7 @@ if (setting('maintenance') === '1') {
 header('Content-Type: text/plain; charset=utf-8');
 $b = BASE_URL;
 echo "User-agent: *\n";
-foreach (['/admin/', '/install/', '/includes/', '/api.php', '/busca', '/busca.php', '/login', '/login.php', '/cadastro', '/cadastro.php', '/conta', '/conta.php', '/minha-lista', '/minha-lista.php', '/logout.php'] as $d) {
+foreach (['/admin/', '/install/', '/cron.php', '/includes/', '/api.php', '/busca', '/busca.php', '/login', '/login.php', '/cadastro', '/cadastro.php', '/conta', '/conta.php', '/minha-lista', '/minha-lista.php', '/logout.php'] as $d) {
     echo 'Disallow: ' . $b . $d . "\n";
 }
 echo "Allow: /\n\n";

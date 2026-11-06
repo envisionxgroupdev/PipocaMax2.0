@@ -96,9 +96,17 @@ function tmdb_list(string $list, int $page = 1): array
         'popular_tv' => ['tv/popular', 'tv'],
         'on_air' => ['tv/on_the_air', 'tv'],
         'anime' => ['discover/tv', 'tv'],
+        'top_rated_movies' => ['movie/top_rated', 'movie'],
+        'trending_movies' => ['trending/movie/week', 'movie'],
+        'top_rated_tv' => ['tv/top_rated', 'tv'],
+        'trending_tv' => ['trending/tv/week', 'tv'],
+        'anime_movies' => ['discover/movie', 'movie'],
     ];
     [$path, $kind] = $paths[$list] ?? $paths['now_playing'];
     $params = ['page' => $page, 'region' => 'BR'];
+    if ($list === 'anime_movies') {
+        $params += ['with_genres' => '16', 'with_original_language' => 'ja', 'sort_by' => 'popularity.desc'];
+    }
     if ($list === 'anime') {
         $params += ['with_genres' => '16', 'with_original_language' => 'ja', 'sort_by' => 'popularity.desc'];
     }
@@ -114,6 +122,7 @@ function tmdb_list(string $list, int $page = 1): array
             'poster' => $r['poster_path'] ?? null,
             'rating' => isset($r['vote_average']) ? round((float)$r['vote_average'], 1) : null,
             'is_anime' => $list === 'anime',
+            'date' => $date,
         ];
     }
     return ['results' => $out, 'total_pages' => min(500, (int)($data['total_pages'] ?? 1))];
