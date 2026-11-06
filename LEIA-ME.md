@@ -11,7 +11,7 @@ Site em PHP + MySQL, responsivo (PC e celular), tema preto e vermelho, com paine
 2. No navegador, abra `https://seusite.com/install/`.
 3. Preencha os dados do seu banco MySQL (servidor, nome do banco, usuário e senha), o nome do site e crie sua conta de administrador.
 4. Clique em **Instalar**. Pronto: as tabelas são criadas sozinhas.
-5. **Apague a pasta `install`** da hospedagem, por segurança.
+5. Pronto: depois de instalado, o instalador se tranca sozinho (não precisa apagar a pasta `install`).
 
 > Se o seu MySQL estiver em outro servidor (não "localhost"), coloque o endereço que a hospedagem do banco informou e confirme que ela permite conexões externas.
 
@@ -40,7 +40,6 @@ Site em PHP + MySQL, responsivo (PC e celular), tema preto e vermelho, com paine
 
 ## Segurança
 - Ative o **SSL (HTTPS)** grátis na hospedagem e depois tire o `#` das 2 linhas de "forçar HTTPS" no arquivo `.htaccess`
-- Apague a pasta `install` depois de instalar
 - Use uma senha forte de administrador (8+ caracteres)
 
 ## Trocar dados do banco depois

@@ -168,7 +168,7 @@ admin_header('Configurações', 'config');
         <li><span>PHP</span><b><?= PHP_VERSION ?></b></li>
         <li><span>MySQL</span><b><?= e((string)q_val('SELECT VERSION()')) ?></b></li>
         <li><span>Últimos erros registrados</span><b><?= is_file(PM_LOG) ? count(file(PM_LOG)) : 0 ?></b></li>
-        <li><span>Pasta de instalação</span><b><?= is_dir(PM_ROOT . '/install') ? '<span class="pill pill-warn">Apague a pasta /install</span>' : 'Removida ✓' ?></b></li>
+        <li><span>Instalador (/install)</span><b><span class="pill pill-ok">Trancado ✓</span></b></li>
       </ul>
       <?php if (is_file(PM_LOG)): $lines = array_slice(file(PM_LOG, FILE_IGNORE_NEW_LINES), -15); ?>
         <h3 class="sub-title">Registro de erros (mais recentes embaixo)</h3>

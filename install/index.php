@@ -14,6 +14,12 @@ $base = str_replace('\\', '/', dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/inst
 $base = ($base === '/' || $base === '.') ? '' : rtrim($base, '/');
 
 $installed = is_file($configFile);
+if ($installed && empty($_SESSION['inst_done'])) {
+    // Já instalado: o instalador fica trancado (não mostra nada a ninguém)
+    http_response_code(404);
+    header('X-Robots-Tag: noindex');
+    exit('Not found');
+}
 $errors = [];
 $done = false;
 
@@ -88,6 +94,7 @@ if (!$installed && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             } else {
                 @chmod($configFile, 0640);
                 $done = true;
+                $_SESSION['inst_done'] = 1;
             }
         } catch (PDOException $e) {
             $msg = $e->getMessage();
@@ -129,7 +136,7 @@ ul.req{list-style:none;padding:0;margin:0}ul.req li{padding:6px 0;border-bottom:
 
 <?php if ($done): ?>
   <div class="ok"><b>Tudo pronto!</b> O banco foi criado e sua conta de administrador está ativa.</div>
-  <p>Por segurança, apague a pasta <b>install</b> do servidor (ou renomeie).</p>
+  <p>O instalador agora fica trancado automaticamente.</p>
   <a class="btn" href="<?= h($base) ?>/admin/">Abrir o painel</a>
   <a class="btn sec" href="<?= h($base) ?>/">Ver o site</a>
 
