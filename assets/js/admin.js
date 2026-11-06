@@ -213,3 +213,107 @@
     });
   }
 })();
+
+/* ===== Montador da API de players (Configurações) ===== */
+(function () {
+  'use strict';
+  var forms = document.querySelectorAll('[data-api-form]');
+  if (!forms.length) return;
+  var LABEL = { tmdb_id: 'ID TMDB', imdb_id: 'ID IMDb', temporada: 'Temporada', episodio: 'Episódio', temporada2: 'Temporada (01)', episodio2: 'Episódio (01)' };
+  var SAMPLE = { tmdb_id: '550', imdb_id: 'tt0137523', temporada: '1', episodio: '3', temporada2: '01', episodio2: '03' };
+  var SAMPLE_EP = { tmdb_id: '1399', imdb_id: 'tt0944947' };
+  var esc = function (s) { return String(s || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+
+  function parse(text) {
+    return text.split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l && l[0] !== '#'; }).map(function (l) {
+      var p = l.split('|').map(function (x) { return x.trim(); });
+      if (p.length === 1) p = ['', p[0]];
+      return { name: p[0] || '', url: p[1] || '', audio: p[2] || '', quality: p[3] || '' };
+    });
+  }
+
+  document.querySelectorAll('[data-builder]').forEach(function (box) {
+    var kind = box.dataset.builder, vars = box.dataset.vars.split(',');
+    var ta = box.nextElementSibling;
+    var rows = parse(ta.value);
+    if (!rows.length) rows.push({ name: 'Player 1', url: '', audio: 'Dublado', quality: '' });
+
+    function sample(url) {
+      var s = {}; Object.keys(SAMPLE).forEach(function (k) { s[k] = (kind === 'episode' && SAMPLE_EP[k]) || SAMPLE[k]; });
+      return url.replace(/\{(\w+)\}/g, function (m, k) { return s[k] !== undefined ? s[k] : m; });
+    }
+    function sync() {
+      ta.value = rows.filter(function (r) { return r.url.trim(); }).map(function (r) {
+        return [r.name.trim() || 'Player', r.url.trim(), r.audio.trim(), r.quality.trim()].join('|').replace(/\|+$/, '');
+      }).join('\n');
+    }
+    function render() {
+      box.innerHTML = rows.map(function (r, i) {
+        var bad = r.url && !/^https?:\/\//i.test(r.url);
+        var noVar = r.url && !/\{(tmdb_id|imdb_id)\}/.test(r.url);
+        return '<div class="ab-row" data-i="' + i + '">' +
+          '<div class="ab-top"><input class="ab-name" placeholder="Nome (ex: Dublado)" value="' + esc(r.name) + '">' +
+          '<input class="ab-audio" placeholder="Áudio (opcional)" list="ab-audios" value="' + esc(r.audio) + '">' +
+          '<button type="button" class="btn-ghost danger ab-del" title="Remover">✕</button></div>' +
+          '<input class="ab-url" placeholder="Cole aqui o link do player…" value="' + esc(r.url) + '">' +
+          '<div class="ab-chips"><span class="muted small">Inserir no link:</span>' + vars.map(function (v) {
+            return '<button type="button" class="chip-btn" data-var="' + v + '">' + LABEL[v] + '</button>';
+          }).join('') + '</div>' +
+          (r.url ? '<div class="ab-preview ' + (bad || noVar ? 'warn' : 'ok') + '">' +
+            (bad ? '⚠ O link precisa começar com http:// ou https://' :
+             noVar ? '⚠ Falta o ID: apague o número do ' + (kind === 'movie' ? 'filme' : 'título') + ' no link e toque em <b>ID TMDB</b> (ou <b>ID IMDb</b>)' :
+             'Exemplo de como fica: <a href="' + esc(sample(r.url)) + '" target="_blank" rel="noopener">' + esc(sample(r.url)) + '</a>') + '</div>' : '') +
+          '</div>';
+      }).join('') + '<button type="button" class="btn btn-sm ab-add">+ Adicionar outro player</button>' +
+        '<datalist id="ab-audios"><option>Dublado</option><option>Legendado</option><option>Dual Áudio</option></datalist>';
+      sync();
+    }
+    var lastUrl = null;
+    box.addEventListener('focusin', function (ev) { if (ev.target.classList.contains('ab-url')) lastUrl = ev.target; });
+    box.addEventListener('input', function (ev) {
+      var row = ev.target.closest('.ab-row'); if (!row) return;
+      var r = rows[+row.dataset.i];
+      if (ev.target.classList.contains('ab-name')) r.name = ev.target.value;
+      if (ev.target.classList.contains('ab-audio')) r.audio = ev.target.value;
+      if (ev.target.classList.contains('ab-url')) r.url = ev.target.value;
+      sync();
+    });
+    box.addEventListener('change', function (ev) { if (ev.target.classList.contains('ab-url')) { var pos = ev.target.selectionStart; render(); } });
+    box.addEventListener('mousedown', function (ev) { if (ev.target.closest('.chip-btn')) ev.preventDefault(); });
+    box.addEventListener('click', function (ev) {
+      var row = ev.target.closest('.ab-row');
+      if (ev.target.closest('.ab-add')) { rows.push({ name: 'Player ' + (rows.length + 1), url: '', audio: '', quality: '' }); render(); return; }
+      if (!row) return;
+      var i = +row.dataset.i;
+      if (ev.target.closest('.ab-del')) { rows.splice(i, 1); if (!rows.length) rows.push({ name: 'Player 1', url: '', audio: '', quality: '' }); render(); return; }
+      var chip = ev.target.closest('.chip-btn');
+      if (chip) {
+        var inp = row.querySelector('.ab-url'), token = '{' + chip.dataset.var + '}';
+        var s = inp.selectionStart != null && lastUrl === inp ? inp.selectionStart : inp.value.length;
+        var e2 = inp.selectionEnd != null && lastUrl === inp ? inp.selectionEnd : s;
+        rows[i].url = inp.value.slice(0, s) + token + inp.value.slice(e2);
+        render();
+        var ni = box.querySelector('.ab-row[data-i="' + i + '"] .ab-url');
+        ni.focus(); ni.setSelectionRange(s + token.length, s + token.length); lastUrl = ni;
+      }
+    });
+    render();
+  });
+})();
+
+/* ===== Envia os campos de texto codificados (evita o firewall da hospedagem barrar links) ===== */
+document.addEventListener('submit', function (ev) {
+  var f = ev.target;
+  if (ev.defaultPrevented || !f || (f.method || '').toLowerCase() !== 'post' || f.dataset.plain !== undefined) return;
+  var b64 = function (s) { return 'b64:' + btoa(unescape(encodeURIComponent(s))); };
+  Array.prototype.forEach.call(f.querySelectorAll('textarea[name], input[name]'), function (el) {
+    var t = (el.getAttribute('type') || 'text').toLowerCase();
+    if (el.name === '_csrf' || el.disabled || ['text', 'search', 'url', 'password', 'hidden'].indexOf(t) < 0 && el.tagName !== 'TEXTAREA') return;
+    if (t === 'hidden' && el.tagName !== 'TEXTAREA') return;
+    if (el.value === '' || el.value.indexOf('b64:') === 0) return;
+    if (t === 'password') return;
+    el.value = b64(el.value);
+  });
+});
+// Se o navegador voltar para uma página já enviada, recarrega (evita mostrar campos codificados)
+window.addEventListener('pageshow', function (e) { if (e.persisted) location.reload(); });

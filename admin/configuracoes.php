@@ -139,19 +139,22 @@ admin_header('Configurações', 'config');
 
     <section class="panel" id="players">
       <div class="panel-head"><h2>API de players</h2><span class="pill <?= api_has_movie_players() || api_has_episode_players() ? 'pill-ok' : 'pill-warn' ?>"><?= api_has_movie_players() || api_has_episode_players() ? 'Ativa' : 'Não configurada' ?></span></div>
-      <p class="muted small">Coloque aqui o link da API que fornece os players. O site monta o link de cada filme e episódio sozinho, usando o ID do TMDB. Assim, <b>todo título importado já aparece com player</b>, sem cadastrar nada. Se a API mudar de endereço, é só trocar aqui que muda no site inteiro.</p>
-      <div class="settings-example">
-        <b>Formato:</b> um player por linha → <code>Nome|Link|Áudio|Qualidade</code> (áudio e qualidade são opcionais)<br>
-        <b>Exemplo de filme:</b> <code>Dublado|https://suaapi.com/filme/{tmdb_id}|Dublado|HD</code><br>
-        <b>Exemplo de episódio:</b> <code>Dublado|https://suaapi.com/serie/{tmdb_id}/{temporada}/{episodio}|Dublado|HD</code>
+      <div class="steps-help">
+        <p><b>Como funciona:</b> cole o link de um filme da sua API e troque o número do filme pelo botão <b>ID TMDB</b> (ou <b>ID IMDb</b>). O site faz o mesmo para todos os títulos, sozinho.</p>
+        <p class="muted small">Exemplo: o link <code>https://suaapi.com/filme/550</code> vira <code>https://suaapi.com/filme/{tmdb_id}</code>.</p>
       </div>
-      <form method="post">
+      <form method="post" data-api-form>
         <?= csrf_field() ?><input type="hidden" name="section" value="players">
-        <label class="field"><span>Players de <b>filmes</b> — variáveis: <code>{tmdb_id}</code> <code>{imdb_id}</code></span>
-          <textarea name="movie_player_templates" rows="4" placeholder="Dublado|https://suaapi.com/filme/{tmdb_id}|Dublado|HD"><?= e(setting('movie_player_templates')) ?></textarea></label>
-        <label class="field"><span>Players de <b>episódios</b> (séries e animes) — variáveis: <code>{tmdb_id}</code> <code>{imdb_id}</code> <code>{temporada}</code> <code>{episodio}</code> <code>{temporada2}</code> <code>{episodio2}</code> (com zero: 01, 02…)</span>
-          <textarea name="episode_player_templates" rows="4" placeholder="Dublado|https://suaapi.com/serie/{tmdb_id}/{temporada}/{episodio}|Dublado|HD"><?= e(setting('episode_player_templates')) ?></textarea></label>
-        <button class="btn btn-red">Salvar</button>
+
+        <h3 class="sub-title"><?= icon('film') ?> Players de filmes</h3>
+        <div class="api-builder" data-builder="movie" data-vars="tmdb_id,imdb_id"></div>
+        <textarea name="movie_player_templates" hidden><?= e(setting('movie_player_templates')) ?></textarea>
+
+        <h3 class="sub-title"><?= icon('series') ?> Players de episódios (séries e animes)</h3>
+        <div class="api-builder" data-builder="episode" data-vars="tmdb_id,imdb_id,temporada,episodio,temporada2,episodio2"></div>
+        <textarea name="episode_player_templates" hidden><?= e(setting('episode_player_templates')) ?></textarea>
+
+        <button class="btn btn-red btn-lg">Salvar players</button>
       </form>
     </section>
 

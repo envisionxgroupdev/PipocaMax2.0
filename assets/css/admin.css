@@ -325,3 +325,24 @@ input[type=checkbox] { accent-color: var(--red); width: 16px; height: 16px; }
 .queue-log li.ok b, .queue-log li.skip b { color: #fff; }
 .queue-log li.skip { color: var(--muted); }
 .queue-log li.err { color: #ff8a8a; }
+
+/* Montador da API de players */
+.steps-help { background: #111; border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; margin-bottom: 18px; }
+.steps-help p { margin: 0 0 4px; }
+.sub-title { display: flex; align-items: center; gap: 8px; margin: 18px 0 10px; }
+.sub-title .ico { color: var(--red); }
+.api-builder { display: flex; flex-direction: column; gap: 10px; margin-bottom: 8px; }
+.ab-row { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.ab-top { display: flex; gap: 8px; }
+.ab-top .ab-name { flex: 1; min-width: 0; }
+.ab-top .ab-audio { width: 160px; }
+.ab-url { width: 100%; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px; }
+.ab-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.chip-btn { background: rgba(229, 9, 20, .12); border: 1px solid rgba(229, 9, 20, .45); color: #ff8a90; border-radius: 20px; padding: 4px 10px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.chip-btn:hover { background: var(--red); color: #fff; }
+.ab-preview { font-size: 12.5px; padding: 8px 10px; border-radius: 6px; word-break: break-all; }
+.ab-preview.ok { background: rgba(46, 160, 67, .1); color: #7ee28f; }
+.ab-preview.ok a { color: #b6f0c0; text-decoration: underline; }
+.ab-preview.warn { background: rgba(210, 153, 34, .12); color: #e3b341; }
+.ab-add { align-self: flex-start; }
+@media (max-width: 600px) { .ab-top { flex-wrap: wrap; } .ab-top .ab-audio { width: auto; flex: 1; } }

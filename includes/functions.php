@@ -299,6 +299,9 @@ function parse_player_templates(string $text): array
             continue;
         }
         $parts = array_map('trim', explode('|', $line));
+        if (count($parts) === 1 && preg_match('#^https?://#i', $parts[0])) {
+            $parts = ['Player ' . (count($out) + 1), $parts[0]]; // só o link: nome automático
+        }
         if (count($parts) < 2 || $parts[1] === '') {
             continue;
         }
