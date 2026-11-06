@@ -30,7 +30,12 @@ try {
 
         case 'list':
             // IDs de uma página de lista do TMDB (para importação em massa)
-            $r = tmdb_list(in_str('list'), max(1, in_int('page', 1)));
+            $ln = in_str('list');
+            if (in_array($ln, ['year_movie', 'year_tv', 'year_anime'], true)) {
+                $r = tmdb_discover_year(['year_movie' => 'movie', 'year_tv' => 'tv', 'year_anime' => 'anime'][$ln], in_int('year', (int)date('Y')), max(1, in_int('page', 1)));
+            } else {
+                $r = tmdb_list($ln, max(1, in_int('page', 1)));
+            }
             json_out(['results' => $r['results'], 'total_pages' => $r['total_pages']]);
 
         case 'import_one':

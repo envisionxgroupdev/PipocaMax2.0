@@ -19,6 +19,9 @@ function auto_sources(): array
         'top_rated_tv' => ['Séries mais bem avaliadas', 'series'],
         'anime' => ['Animes (séries) populares', 'anime'],
         'anime_movies' => ['Filmes de anime', 'movie'],
+        'year_movie' => ['Filmes por ano (catálogo antigo)', 'movie'],
+        'year_tv' => ['Séries por ano (catálogo antigo)', 'series'],
+        'year_anime' => ['Animes por ano (catálogo antigo)', 'anime'],
     ];
 }
 
@@ -66,8 +69,19 @@ function run_autoimport(?int $limit = null, int $maxSeconds = 50, bool $force = 
         while ($sources && $sum['imported'] < $limit && time() - $start < $maxSeconds && $emptyRounds < count($sources) * 3) {
             $src = $sources[$si % count($sources)];
             $si++;
-            $page = max(1, (int)($cursor[$src] ?? 1));
-            $list = tmdb_list($src, $page);
+            $byYear = str_starts_with($src, 'year_');
+            if ($byYear) {
+                // Percorre os anos do mais novo para o mais antigo, os mais populares primeiro
+                [$yFrom, $yTo] = auto_year_range();
+                $yc = $cursor[$src] ?? [];
+                $year = (int)($yc['y'] ?? $yTo);
+                if ($year > $yTo || $year < $yFrom) $year = $yTo;
+                $page = max(1, (int)($yc['p'] ?? 1));
+                $list = tmdb_discover_year(['year_movie' => 'movie', 'year_tv' => 'tv', 'year_anime' => 'anime'][$src], $year, $page);
+            } else {
+                $page = max(1, (int)($cursor[$src] ?? 1));
+                $list = tmdb_list($src, $page);
+            }
             $found = 0;
             foreach ($list['results'] as $r) {
                 if ($sum['imported'] >= $limit || time() - $start >= $maxSeconds) break;
@@ -95,7 +109,19 @@ function run_autoimport(?int $limit = null, int $maxSeconds = 50, bool $force = 
             }
             // Página toda já existia: avança para a próxima; chegou no fim: volta ao começo
             if ($found === 0 || count($list['results']) === 0) {
-                $cursor[$src] = $page >= min(500, (int)$list['total_pages']) ? 1 : $page + 1;
+                if ($byYear) {
+                    $maxPages = min((int)$list['total_pages'], max(1, (int)setting('auto_year_pages', '10')));
+                    if ($page >= $maxPages) {
+                        $year--;
+                        $page = 1;
+                        if ($year < $yFrom) $year = $yTo; // terminou: recomeça do ano mais novo
+                    } else {
+                        $page++;
+                    }
+                    $cursor[$src] = ['y' => $year, 'p' => $page];
+                } else {
+                    $cursor[$src] = $page >= min(500, (int)$list['total_pages']) ? 1 : $page + 1;
+                }
                 $emptyRounds++;
             }
         }
@@ -139,6 +165,27 @@ function run_autoimport(?int $limit = null, int $maxSeconds = 50, bool $force = 
         auto_log('Nada novo para importar desta vez.', 'info');
     }
     return $sum;
+}
+
+function auto_year_range(): array
+{
+    $to = (int)setting('auto_year_to', date('Y'));
+    $from = (int)setting('auto_year_from', '1990');
+    $to = max(1900, min((int)date('Y') + 1, $to ?: (int)date('Y')));
+    $from = max(1900, min($to, $from ?: 1990));
+    return [$from, $to];
+}
+
+/** Em que ano/página cada lista "por ano" está agora */
+function auto_year_progress(): array
+{
+    $cursor = json_decode((string)setting('auto_cursor', '{}'), true) ?: [];
+    [$f, $t] = auto_year_range();
+    $out = [];
+    foreach (['year_movie', 'year_tv', 'year_anime'] as $k) {
+        $out[$k] = (int)($cursor[$k]['y'] ?? $t);
+    }
+    return $out;
 }
 
 /** Modo "visitas": roda um lote pequeno depois de entregar a página ao visitante */

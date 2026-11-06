@@ -17,6 +17,16 @@ if (is_post()) {
         set_setting('auto_status', in_str('status') === 'draft' ? 'draft' : 'published');
         set_setting('auto_release_days', (string)max(0, min(365, in_int('release_days', 60))));
         set_setting('auto_update_series', isset($_POST['update_series']) ? '1' : '0');
+        $yf = max(1900, min((int)date('Y'), in_int('year_from', 1990)));
+        $yt = max($yf, min((int)date('Y') + 1, in_int('year_to', (int)date('Y'))));
+        if ((int)setting('auto_year_from') !== $yf || (int)setting('auto_year_to') !== $yt) {
+            $c = json_decode((string)setting('auto_cursor', '{}'), true) ?: [];
+            unset($c['year_movie'], $c['year_tv'], $c['year_anime']);
+            set_setting('auto_cursor', json_encode($c));
+        }
+        set_setting('auto_year_from', (string)$yf);
+        set_setting('auto_year_to', (string)$yt);
+        set_setting('auto_year_pages', (string)max(1, min(50, in_int('year_pages', 10))));
         set_setting('auto_mode', in_str('mode') === 'visits' ? 'visits' : 'cron');
         flash('success', setting('auto_enabled') === '1' ? 'Importação automática ligada.' : 'Configurações salvas (importação automática desligada).');
     } elseif ($action === 'run') {
@@ -77,6 +87,22 @@ admin_header('Importação automática', 'auto');
         <label class="source"><input type="checkbox" name="sources[]" value="<?= $k ?>" <?= in_array($k, $chosen, true) ? 'checked' : '' ?>>
           <span><b><?= e($label) ?></b><small><?= e(type_label($t === 'movie' && $k === 'anime_movies' ? 'movie' : $t)) ?></small></span></label>
       <?php endforeach; ?>
+    </div>
+
+    <?php [$yFrom, $yTo] = auto_year_range(); $yp = auto_year_progress(); ?>
+    <div class="year-box">
+      <b><?= icon('film') ?> Listas "por ano"</b>
+      <p class="muted small">Pega os títulos mais populares de cada ano, do ano mais novo para o mais antigo. Bom para montar o catálogo com filmes e séries que já têm mais players disponíveis.</p>
+      <div class="form-row">
+        <span>De</span><input type="number" name="year_from" min="1900" max="<?= date('Y') ?>" value="<?= $yFrom ?>" class="w-year">
+        <span>até</span><input type="number" name="year_to" min="1900" max="<?= date('Y') + 1 ?>" value="<?= $yTo ?>" class="w-year">
+        <span>•</span><input type="number" name="year_pages" min="1" max="50" value="<?= (int)setting('auto_year_pages', '10') ?>" class="w-num"><span class="muted small">páginas por ano (20 títulos cada)</span>
+      </div>
+      <?php if (array_intersect(['year_movie', 'year_tv', 'year_anime'], $chosen)): ?>
+        <p class="small year-now">Agora em:
+          <?php foreach (['year_movie' => 'Filmes', 'year_tv' => 'Séries', 'year_anime' => 'Animes'] as $k => $l) if (in_array($k, $chosen, true)) echo '<span class="pill">' . $l . ' ' . (int)$yp[$k] . '</span> '; ?>
+        </p>
+      <?php endif; ?>
     </div>
 
     <div class="form-grid" style="margin-top:16px">

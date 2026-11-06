@@ -373,3 +373,10 @@ input[type=checkbox] { accent-color: var(--red); width: 16px; height: 16px; }
 .auto-log li small { color: var(--muted); white-space: nowrap; }
 .auto-log li.ok span { color: #7ee28f; }
 .auto-log li.error span { color: #ff8a8a; }
+.year-box { margin-top: 14px; background: var(--panel-2); border: 1px dashed #3a3a3a; border-radius: 10px; padding: 12px 14px; }
+.year-box b { display: flex; align-items: center; gap: 8px; }
+.year-box b .ico { color: var(--red); }
+.year-box p { margin: 4px 0 0; }
+.year-box .form-row { margin-top: 8px; }
+.w-year { width: 96px; }
+.year-now { margin-top: 10px !important; }

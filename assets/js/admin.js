@@ -134,6 +134,11 @@
   }
 
   // Aba "Listas inteiras"
+  var lsel = document.getElementById('list-name');
+  if (lsel) {
+    var upd = function () { var y = document.querySelector('.list-year'); if (y) y.hidden = !lsel.options[lsel.selectedIndex].hasAttribute('data-year'); };
+    lsel.addEventListener('change', upd); upd();
+  }
   var ls = document.getElementById('list-start');
   if (ls) ls.addEventListener('click', function () {
     var sel = document.getElementById('list-name');
@@ -146,7 +151,9 @@
     for (var p = from; p <= to; p++) pages.push(p);
     pages.reduce(function (pr, pg) {
       return pr.then(function () {
-        return ajax('list', { list: sel.value, page: pg }, 'GET').then(function (j) {
+        var q = { list: sel.value, page: pg };
+        if (sel.options[sel.selectedIndex].hasAttribute('data-year')) q.year = document.getElementById('list-year').value;
+        return ajax('list', q, 'GET').then(function (j) {
           (j.results || []).forEach(function (r) { items.push({ item: String(r.tmdb_id), type: type, label: r.title }); });
         });
       });

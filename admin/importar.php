@@ -84,11 +84,19 @@ admin_header('Importar do TMDB', 'importar');
 <?php elseif ($aba === 'listas'): ?>
 <section class="panel">
   <div class="panel-head"><h2>Importar listas inteiras</h2></div>
-  <p class="muted">Importa os títulos de uma lista do TMDB, página por página. Cada página tem 20 títulos (3 páginas = 60 títulos). Os que você já tem são pulados.</p>
+  <p class="muted">Importa os títulos de uma lista do TMDB, página por página. Cada página tem 20 títulos (3 páginas = 60 títulos). Os que você já tem são pulados. Use <b>"por ano"</b> para montar o catálogo com títulos mais antigos.</p>
   <div class="form-row">
     <select id="list-name">
+      <optgroup label="Por ano (mais populares do ano)">
+        <option value="year_movie" data-type="movie" data-year>Filmes de um ano</option>
+        <option value="year_tv" data-type="series" data-year>Séries de um ano</option>
+        <option value="year_anime" data-type="anime" data-year>Animes de um ano</option>
+      </optgroup>
+      <optgroup label="Listas do momento">
       <?php foreach ($lists as $k => [$l, $t]): ?><option value="<?= $k ?>" data-type="<?= $t ?>"><?= e($l) ?></option><?php endforeach; ?>
+      </optgroup>
     </select>
+    <span class="list-year"><span class="muted">ano</span> <input type="number" id="list-year" value="<?= date('Y') - 1 ?>" min="1900" max="<?= date('Y') + 1 ?>" class="w-year"></span>
     <span class="muted">da página</span>
     <input type="number" id="list-from" value="1" min="1" max="500" class="w-num">
     <span class="muted">até</span>

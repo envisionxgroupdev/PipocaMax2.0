@@ -129,6 +129,42 @@ function tmdb_list(string $list, int $page = 1): array
 }
 
 /**
+ * Títulos mais populares de um ano. $what: movie | tv | anime | anime_movie
+ */
+function tmdb_discover_year(string $what, int $year, int $page = 1): array
+{
+    $isTv = in_array($what, ['tv', 'anime'], true);
+    $params = ['page' => $page, 'sort_by' => 'popularity.desc', 'include_adult' => 'false', 'vote_count.gte' => 20];
+    if ($isTv) {
+        $params['first_air_date_year'] = $year;
+    } else {
+        $params['primary_release_year'] = $year;
+    }
+    if ($what === 'anime' || $what === 'anime_movie') {
+        $params += ['with_genres' => '16', 'with_original_language' => 'ja'];
+        $params['vote_count.gte'] = 5;
+    } elseif ($what === 'tv') {
+        $params['without_genres'] = '10767,10763,10764'; // sem talk show, jornal e reality
+    }
+    $data = tmdb_request('discover/' . ($isTv ? 'tv' : 'movie'), $params);
+    $out = [];
+    foreach ($data['results'] ?? [] as $r) {
+        $date = $r['release_date'] ?? $r['first_air_date'] ?? '';
+        $out[] = [
+            'tmdb_id' => (int)$r['id'],
+            'kind' => $isTv ? 'tv' : 'movie',
+            'title' => $r['title'] ?? $r['name'] ?? '',
+            'year' => $date ? substr($date, 0, 4) : '',
+            'poster' => $r['poster_path'] ?? null,
+            'rating' => isset($r['vote_average']) ? round((float)$r['vote_average'], 1) : null,
+            'is_anime' => $what === 'anime',
+            'date' => $date,
+        ];
+    }
+    return ['results' => $out, 'total_pages' => min(500, (int)($data['total_pages'] ?? 1))];
+}
+
+/**
  * Importa (ou atualiza) um título do TMDB.
  * $type: movie | series | anime. Retorna o id local.
  */
