@@ -7,6 +7,10 @@ $action = in_str('action');
 
 try {
     switch ($action) {
+        case 'ping':
+            // Teste de diagnóstico: só confirma que o envio chegou
+            json_out(['ok' => true, 'method' => $_SERVER['REQUEST_METHOD'] ?? '', 'bytes' => strlen((string)file_get_contents('php://input')), 'php' => PHP_VERSION]);
+
         case 'search':
             $q = in_str('q');
             $kind = in_str('kind') === 'tv' ? 'tv' : 'movie';

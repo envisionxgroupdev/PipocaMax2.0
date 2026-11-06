@@ -72,6 +72,9 @@ switch ($action) {
         $_SESSION['last_report'] = time();
         json_out(['ok' => true]);
 
+    case 'ping':
+        json_out(['ok' => true, 'method' => $_SERVER['REQUEST_METHOD'] ?? '']);
+
     case 'suggest':
         $term = in_str('q');
         if (mb_strlen($term) < 2) json_out(['results' => []]);

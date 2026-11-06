@@ -199,7 +199,7 @@ admin_header('Configurações', 'config');
     </section>
 
     <section class="panel">
-      <div class="panel-head"><h2>Sistema</h2></div>
+      <div class="panel-head"><h2>Sistema</h2><a class="btn btn-sm" href="<?= e(url('admin/diagnostico.php')) ?>"><?= icon('wrench') ?> Diagnóstico</a></div>
       <ul class="sys">
         <li><span>Versão do <?= e(site_name()) ?></span><b><?= PM_VERSION ?></b></li>
         <li><span>PHP</span><b><?= PHP_VERSION ?></b></li>
