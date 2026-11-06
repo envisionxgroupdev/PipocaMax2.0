@@ -21,6 +21,10 @@ if (is_post()) {
             set_setting('google_analytics', preg_match('/^G-[A-Z0-9]+$/', $ga) ? $ga : '');
             break;
         case 'checksitemap':
+            if (setting('maintenance') === '1') {
+                flash('info', 'O site está em modo manutenção, por isso o sitemap fica pausado de propósito (o Google entende que é temporário e não tira suas páginas da busca). Desative a manutenção e verifique de novo.');
+                redirect('admin/configuracoes.php#seo');
+            }
             // Testa o sitemap do jeito que o Google acessa
             $smUrl = site_url(pretty_urls() ? url('sitemap.xml') : url('sitemap.php'));
             $body = false; $code = 0;
