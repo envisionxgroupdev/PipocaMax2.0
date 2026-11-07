@@ -161,6 +161,7 @@ function run_autoimport(?int $limit = null, int $maxSeconds = 50, bool $force = 
         $sum['errors']++;
         auto_log('Falha na importação automática: ' . $e->getMessage(), 'error');
     } finally {
+        if ($sum['imported'] || $sum['updated']) cache_bump();
         set_setting('auto_cursor', json_encode($cursor));
         set_setting('auto_failed', json_encode($failed));
         if ($errMsgs) auto_log('Não consegui importar: ' . implode('; ', array_slice($errMsgs, 0, 5)) . '. Vou tentar de novo amanhã.', 'error');

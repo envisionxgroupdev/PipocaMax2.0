@@ -268,6 +268,7 @@ function tmdb_import(int $tmdbId, string $type, bool $withSeasons = true, array 
         $id = (int)db()->lastInsertId();
     }
 
+    if (function_exists('cache_bump')) cache_bump();
     if ($kind === 'tv' && $withSeasons) {
         $nums = [];
         foreach ($d['seasons'] ?? [] as $s) {

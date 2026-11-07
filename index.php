@@ -2,22 +2,27 @@
 require __DIR__ . '/includes/bootstrap.php';
 check_maintenance();
 
-$cols = 'id, type, title, slug, poster, backdrop, logo, year, rating, overview, genres, runtime, age_rating, is_release';
-$hero = q_all("SELECT $cols FROM contents WHERE status = 'published' AND featured = 1 AND backdrop IS NOT NULL ORDER BY updated_at DESC LIMIT 6");
-if (!$hero) {
-    $hero = q_all("SELECT $cols FROM contents WHERE status = 'published' AND backdrop IS NOT NULL ORDER BY is_release DESC, created_at DESC LIMIT 5");
-}
-$releases = q_all("SELECT $cols FROM contents WHERE status = 'published' AND is_release = 1 ORDER BY COALESCE(release_date, created_at) DESC LIMIT 24");
-$movies = q_all("SELECT $cols FROM contents WHERE status = 'published' AND type = 'movie' ORDER BY created_at DESC LIMIT 24");
-$series = q_all("SELECT $cols FROM contents WHERE status = 'published' AND type = 'series' ORDER BY updated_at DESC LIMIT 24");
-$animes = q_all("SELECT $cols FROM contents WHERE status = 'published' AND type = 'anime' ORDER BY updated_at DESC LIMIT 24");
-$top = q_all("SELECT $cols FROM contents WHERE status = 'published' AND views > 0 ORDER BY views DESC LIMIT 10");
-$channels = q_all("SELECT * FROM channels WHERE status = 'active' ORDER BY sort, name LIMIT 20");
+// As consultas da página inicial ficam guardadas por 5 minutos (renovadas na hora quando algo muda no painel)
+[$hero, $releases, $movies, $series, $animes, $top, $channels] = cache_remember('home', 300, function () {
+    $cols = 'id, type, title, slug, poster, backdrop, logo, year, rating, overview, genres, runtime, age_rating, is_release';
+    $hero = q_all("SELECT $cols FROM contents WHERE status = 'published' AND featured = 1 AND backdrop IS NOT NULL ORDER BY updated_at DESC LIMIT 6");
+    if (!$hero) {
+        $hero = q_all("SELECT $cols FROM contents WHERE status = 'published' AND backdrop IS NOT NULL ORDER BY is_release DESC, created_at DESC LIMIT 5");
+    }
+    $releases = q_all("SELECT $cols FROM contents WHERE status = 'published' AND is_release = 1 ORDER BY COALESCE(release_date, created_at) DESC LIMIT 24");
+    $movies = q_all("SELECT $cols FROM contents WHERE status = 'published' AND type = 'movie' ORDER BY created_at DESC LIMIT 24");
+    $series = q_all("SELECT $cols FROM contents WHERE status = 'published' AND type = 'series' ORDER BY updated_at DESC LIMIT 24");
+    $animes = q_all("SELECT $cols FROM contents WHERE status = 'published' AND type = 'anime' ORDER BY updated_at DESC LIMIT 24");
+    $top = q_all("SELECT $cols FROM contents WHERE status = 'published' AND views > 0 ORDER BY views DESC LIMIT 10");
+    $channels = q_all("SELECT * FROM channels WHERE status = 'active' ORDER BY sort, name LIMIT 20");
+    return [$hero, $releases, $movies, $series, $animes, $top, $channels];
+});
 
 $active = 'home';
 $bodyClass = 'has-hero';
 $canonical = site_url();
 $metaImage = $hero ? abs_img($hero[0]['backdrop'], 'w1280') : null;
+$preloadHero = $hero ? $hero[0]['backdrop'] : null;
 $jsonLd = [[
     '@context' => 'https://schema.org',
     '@type' => 'WebSite',
@@ -37,7 +42,7 @@ require __DIR__ . '/includes/header.php';
 <section class="hero" data-hero>
   <?php foreach ($hero as $i => $h): ?>
   <div class="hero-slide<?= $i === 0 ? ' active' : '' ?>">
-    <div class="hero-bg" style="background-image:url('<?= e(img($h['backdrop'], 'original')) ?>')"></div>
+    <div class="hero-bg" <?= $i === 0 ? 'style="' . bg_vars($h['backdrop']) . '"' : 'data-bg="' . bg_vars($h['backdrop']) . '"' ?>></div>
     <div class="hero-shade"></div>
     <div class="hero-content container">
       <?php if ($h['logo']): ?>

@@ -5,6 +5,7 @@
 require_once dirname(__DIR__) . '/includes/bootstrap.php';
 require_once PM_ROOT . '/includes/icons.php';
 require_admin();
+if (is_post()) cache_bump(); // qualquer alteração no painel renova o cache do site
 header('Cache-Control: no-store, no-cache, must-revalidate');
 
 function admin_header(string $title, string $active = ''): void
@@ -30,7 +31,7 @@ function admin_header(string $title, string $active = ''): void
 <meta name="robots" content="noindex">
 <title><?= e($title) ?> • Painel <?= e(site_name()) ?></title>
 <link rel="icon" href="<?= e(asset('img/favicon.svg')) ?>" type="image/svg+xml">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="<?= e(asset('css/admin.css')) ?>">
 </head>
 <body>

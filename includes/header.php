@@ -47,8 +47,16 @@ $nav = [
 <link rel="icon" href="<?= e(asset('img/favicon.svg')) ?>" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preconnect" href="https://image.tmdb.org">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://image.tmdb.org" crossorigin>
+<link rel="dns-prefetch" href="https://image.tmdb.org">
+<?php $fontsUrl = 'https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;600;700;800&display=swap'; ?>
+<link rel="preload" as="style" href="<?= e($fontsUrl) ?>">
+<link rel="stylesheet" href="<?= e($fontsUrl) ?>" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="<?= e($fontsUrl) ?>"></noscript>
+<?php if (!empty($preloadHero)): ?>
+<link rel="preload" as="image" href="<?= e(img($preloadHero, 'w780')) ?>" media="(max-width: 900px)" fetchpriority="high">
+<link rel="preload" as="image" href="<?= e(img($preloadHero, 'w1280')) ?>" media="(min-width: 901px)" fetchpriority="high">
+<?php endif; ?>
 <link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>">
 <?= custom_code('head') ?>
 </head>

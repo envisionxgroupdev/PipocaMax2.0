@@ -109,9 +109,15 @@
   var hero = $('[data-hero]');
   if (hero) {
     var slides = $$('.hero-slide', hero), dots = $$('.hero-dots button', hero), cur = 0, iv;
+    var loadBg = function (k) {
+      var bg = slides[k] && slides[k].querySelector('.hero-bg[data-bg]');
+      if (bg) { bg.setAttribute('style', bg.getAttribute('data-bg')); bg.removeAttribute('data-bg'); }
+    };
+    setTimeout(function () { loadBg(1); }, 4000); // adianta o próximo depois que a página carregou
     var go = function (i) {
       slides[cur].classList.remove('active'); if (dots[cur]) dots[cur].classList.remove('active');
       cur = (i + slides.length) % slides.length;
+      loadBg(cur); loadBg((cur + 1) % slides.length);
       slides[cur].classList.add('active'); if (dots[cur]) dots[cur].classList.add('active');
     };
     var start = function () { clearInterval(iv); if (slides.length > 1) iv = setInterval(function () { go(cur + 1); }, 8000); };

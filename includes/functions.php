@@ -81,6 +81,51 @@ function clean_url(string $u, bool $allowPath = false): string
     return '';
 }
 
+/** Estilo de fundo responsivo: w780 no celular, w1280 no PC (em vez do tamanho original, que pesa megabytes) */
+function bg_vars(?string $path): string
+{
+    if (!$path) return '';
+    return "--bg-d:url('" . e(img($path, 'w1280')) . "');--bg-m:url('" . e(img($path, 'w780')) . "')";
+}
+
+/** srcset de pôster: o navegador escolhe o tamanho certo para a tela */
+function poster_srcset(?string $path): string
+{
+    if (!$path || !str_starts_with($path, '/')) return '';
+    return e(img($path, 'w185')) . ' 185w, ' . e(img($path, 'w342')) . ' 342w';
+}
+
+/* ---------- Cache de consultas (arquivos), renovado quando algo muda no painel ---------- */
+function cache_dir(): string
+{
+    $d = PM_ROOT . '/includes/cache';
+    if (!is_dir($d)) @mkdir($d, 0750, true);
+    return $d;
+}
+
+function cache_remember(string $key, int $ttl, callable $fn)
+{
+    $ver = setting('cache_ver', '1');
+    $file = cache_dir() . '/' . md5($key . '|' . $ver) . '.cache';
+    if (is_file($file) && filemtime($file) > time() - $ttl) {
+        $data = @unserialize((string)file_get_contents($file), ['allowed_classes' => false]);
+        if ($data !== false) return $data;
+    }
+    $data = $fn();
+    @file_put_contents($file, serialize($data), LOCK_EX);
+    return $data;
+}
+
+/** Invalida o cache (chamado ao salvar qualquer coisa no painel e nas importações) */
+function cache_bump(): void
+{
+    set_setting('cache_ver', (string)time());
+    // limpa arquivos velhos de vez em quando
+    if (mt_rand(1, 20) === 1) {
+        foreach (glob(cache_dir() . '/*.cache') ?: [] as $f) if (filemtime($f) < time() - 3600) @unlink($f);
+    }
+}
+
 /** Imagem com endereço completo (para redes sociais e Google) */
 function abs_img(?string $path, string $size = 'w780'): ?string
 {
@@ -424,7 +469,7 @@ function render_card(array $c): string
     }
     $rating = $c['rating'] ? '<span class="card-rating">★ ' . e(number_format((float)$c['rating'], 1)) . '</span>' : '';
     return '<a class="card" href="' . e(content_url($c)) . '" title="' . e($c['title']) . '">'
-        . '<div class="card-img"><img loading="lazy" src="' . e(img($c['poster'], 'w342')) . '" alt="' . e($c['title']) . '">' . $badge
+        . '<div class="card-img"><img loading="lazy" decoding="async" src="' . e(img($c['poster'], 'w342')) . '"' . (($ss = poster_srcset($c['poster'])) ? ' srcset="' . $ss . '" sizes="(max-width: 900px) 34vw, 210px"' : '') . ' alt="' . e($c['title']) . '">' . $badge
         . '<div class="card-hover"><span class="play-ico"></span></div></div>'
         . '<div class="card-info"><h3>' . e($c['title']) . '</h3><p>' . e(type_label($c['type'])) . ($c['year'] ? ' • ' . (int)$c['year'] : '') . $rating . '</p></div>'
         . '</a>';

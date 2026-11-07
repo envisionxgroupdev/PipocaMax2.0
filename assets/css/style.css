@@ -127,7 +127,8 @@ body:not(.has-hero) .main { padding-top: var(--top); }
 .hero { position: relative; height: min(88vh, 860px); min-height: 520px; overflow: hidden; }
 .hero-slide { position: absolute; inset: 0; opacity: 0; transition: opacity .9s ease; pointer-events: none; }
 .hero-slide.active { opacity: 1; pointer-events: auto; }
-.hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center top; }
+.hero-bg { position: absolute; inset: 0; background-size: cover; background-position: center top; background-color: #141414; background-image: var(--bg-d); }
+@media (max-width: 900px) { .hero-bg { background-image: var(--bg-m, var(--bg-d)); } }
 .hero-slide.active .hero-bg { animation: kenburns 14s ease-out forwards; }
 @keyframes kenburns { from { transform: scale(1.08); } to { transform: scale(1); } }
 .hero-shade {

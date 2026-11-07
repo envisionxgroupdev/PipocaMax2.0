@@ -45,7 +45,12 @@ CREATE TABLE IF NOT EXISTS contents (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_type (type, status),
   KEY idx_tmdb (tmdb_id, type),
-  KEY idx_slug (slug)
+  KEY idx_slug (slug),
+  KEY idx_c_created (status, created_at),
+  KEY idx_c_release (status, is_release, release_date),
+  KEY idx_c_views (status, views),
+  KEY idx_c_featured (status, featured, updated_at),
+  KEY idx_c_typeupd (type, status, updated_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS seasons (
@@ -150,4 +155,4 @@ INSERT IGNORE INTO settings (`key`, `value`) VALUES
 ('seo_home_title', ''),
 ('google_verification', ''),
 ('google_analytics', ''),
-('db_version', '3');
+('db_version', '4');

@@ -25,16 +25,18 @@ if ($catType === 'release') {
 }
 
 // Gêneros disponíveis
-$genreRows = q_all('SELECT genres FROM contents WHERE ' . implode(' AND ', $where) . " AND genres IS NOT NULL AND genres <> ''", $params);
-$genreList = [];
-foreach ($genreRows as $g) {
-    foreach (explode(',', $g['genres']) as $x) {
-        $x = trim($x);
-        if ($x !== '') $genreList[$x] = true;
+$genreList = cache_remember('genres:' . $catType, 1800, function () use ($where, $params) {
+    $list = [];
+    foreach (q_all('SELECT DISTINCT genres FROM contents WHERE ' . implode(' AND ', $where) . " AND genres IS NOT NULL AND genres <> ''", $params) as $g) {
+        foreach (explode(',', $g['genres']) as $x) {
+            $x = trim($x);
+            if ($x !== '') $list[$x] = true;
+        }
     }
-}
-$genreList = array_keys($genreList);
-sort($genreList, SORT_LOCALE_STRING);
+    $list = array_keys($list);
+    sort($list, SORT_LOCALE_STRING);
+    return $list;
+});
 
 $genre = in_str('genero');
 $year = in_int('ano');
@@ -65,7 +67,7 @@ $items = q_all(
     "SELECT id, type, title, slug, poster, year, rating, is_release FROM contents WHERE $whereSql ORDER BY $order LIMIT $perPage OFFSET " . (($page - 1) * $perPage),
     $params
 );
-$years = q_all('SELECT DISTINCT year FROM contents WHERE year IS NOT NULL AND status = \'published\' ORDER BY year DESC');
+$years = cache_remember('years', 1800, fn() => q_all('SELECT DISTINCT year FROM contents WHERE year IS NOT NULL AND status = \'published\' ORDER BY year DESC'));
 
 $qs = http_build_query(array_filter(['genero' => $genre, 'ano' => $year ?: null, 'ordem' => $sort !== 'recentes' ? $sort : null]));
 $pageUrl = strtok($_SERVER['REQUEST_URI'], '?') . ($qs ? '?' . $qs : '');

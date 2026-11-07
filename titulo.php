@@ -67,6 +67,7 @@ $metaDescription = $c['overview'] ?: (type_label($c['type']) . ' ' . $c['title']
 $canonical = site_url(content_url($c));
 $metaImage = abs_img($c['backdrop'] ?: $c['poster'], 'w1280');
 $ogType = $isMovie ? 'video.movie' : 'video.tv_show';
+$preloadHero = $c['backdrop'] ?: $c['poster'];
 $noindex = $c['status'] !== 'published';
 $ld = array_filter([
     '@context' => 'https://schema.org',
@@ -99,10 +100,10 @@ $bodyClass = 'has-hero';
 require __DIR__ . '/includes/header.php';
 ?>
 <section class="detail-hero">
-  <div class="hero-bg" style="background-image:url('<?= e(img($c['backdrop'] ?: $c['poster'], 'original')) ?>')"></div>
+  <div class="hero-bg" style="<?= bg_vars($c['backdrop'] ?: $c['poster']) ?>"></div>
   <div class="hero-shade"></div>
   <div class="container detail-inner">
-    <img class="detail-poster" src="<?= e(img($c['poster'], 'w500')) ?>" alt="<?= e($c['title']) ?>">
+    <img class="detail-poster" src="<?= e(img($c['poster'], 'w342')) ?>" width="250" height="375" decoding="async" alt="<?= e($c['title']) ?>">
     <div class="detail-info">
       <?php if ($c['logo']): ?>
         <img class="hero-logo" src="<?= e(img($c['logo'], 'w500')) ?>" alt="<?= e($c['title']) ?>">
@@ -168,7 +169,7 @@ require __DIR__ . '/includes/header.php';
       </div>
       <?= ad_slot('player_above') ?>
       <div class="player" data-player-box>
-        <div class="player-cover" style="background-image:url('<?= e(img($c['backdrop'] ?: $c['poster'], 'w1280')) ?>')">
+        <div class="player-cover" style="background-image:url('<?= e(img($c['backdrop'] ?: $c['poster'], 'w780')) ?>')">
           <button class="big-play" aria-label="Reproduzir"><?= icon('play') ?></button>
           <span class="player-hint">Escolha um player acima e clique para assistir</span>
         </div>

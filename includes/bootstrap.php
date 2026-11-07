@@ -137,4 +137,15 @@ if ((int)setting('db_version', '1') < 3) {
     try { q('CREATE INDEX idx_ch_source ON channels (source, ext_key)'); } catch (Throwable $e) {}
     set_setting('db_version', '3');
 }
+if ((int)setting('db_version', '1') < 4) {
+    foreach ([
+        'CREATE INDEX idx_c_created ON contents (status, created_at)',
+        'CREATE INDEX idx_c_release ON contents (status, is_release, release_date)',
+        'CREATE INDEX idx_c_views ON contents (status, views)',
+        'CREATE INDEX idx_c_featured ON contents (status, featured, updated_at)',
+        'CREATE INDEX idx_c_typeupd ON contents (type, status, updated_at)',
+        'CREATE INDEX idx_ch_status ON channels (status, sort, name)',
+    ] as $ix) { try { q($ix); } catch (Throwable $e) {} }
+    set_setting('db_version', '4');
+}
 refresh_current_user();
