@@ -36,6 +36,8 @@ $nav = [
 <?php if ($metaImage): ?><meta property="og:image" content="<?= e($metaImage) ?>"><?php endif; ?>
 <meta name="twitter:card" content="<?= $metaImage ? 'summary_large_image' : 'summary' ?>">
 <?php if (setting('google_verification')): ?><meta name="google-site-verification" content="<?= e(setting('google_verification')) ?>"><?php endif; ?>
+<?php if (setting('bing_verification')): ?><meta name="msvalidate.01" content="<?= e(setting('bing_verification')) ?>"><?php endif; ?>
+<?php if (setting('yandex_verification')): ?><meta name="yandex-verification" content="<?= e(setting('yandex_verification')) ?>"><?php endif; ?>
 <?php foreach ($jsonLd as $ld): ?><script type="application/ld+json"><?= json_encode($ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <?php endforeach; ?>
 <?php if (preg_match('/^G-[A-Z0-9]+$/', (string)setting('google_analytics'))): ?>

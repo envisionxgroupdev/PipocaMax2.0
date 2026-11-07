@@ -17,6 +17,11 @@ if (is_post()) {
             $gv = in_str('google_verification');
             if (preg_match('/content="([^"]+)"/', $gv, $m)) $gv = $m[1]; // aceita a tag inteira
             set_setting('google_verification', preg_replace('/[^A-Za-z0-9_\-]/', '', $gv));
+            foreach (['bing_verification', 'yandex_verification'] as $vk) {
+                $v = in_str($vk);
+                if (preg_match('/content="([^"]+)"/', $v, $m)) $v = $m[1]; // aceita a tag inteira
+                set_setting($vk, preg_replace('/[^A-Za-z0-9_\-]/', '', $v));
+            }
             $ga = strtoupper(in_str('google_analytics'));
             set_setting('google_analytics', preg_match('/^G-[A-Z0-9]+$/', $ga) ? $ga : '');
             break;
@@ -119,12 +124,14 @@ admin_header('Configurações', 'config');
         <label class="toggle-row"><div><b>URLs amigáveis</b><small>Links como <code><?= e(site_url(url('filme/123-nome-do-filme'))) ?></code> em vez de <code>titulo.php?id=123</code>. Melhor para o Google. Desative se os títulos derem "página não encontrada" (servidor sem mod_rewrite).</small></div><input type="checkbox" name="pretty_urls" value="1" <?= pretty_urls() ? 'checked' : '' ?>><span class="switch-ui"></span></label>
         <div class="form-grid">
           <label class="field span-3"><span>Título da página inicial no Google (até 60 letras)</span><input name="seo_home_title" maxlength="70" value="<?= e(setting('seo_home_title')) ?>" placeholder="<?= e(site_name() . ' • ' . setting('site_description')) ?>"></label>
-          <label class="field span-2"><span>Verificação do Google Search Console (código ou a tag inteira)</span><input name="google_verification" value="<?= e(setting('google_verification')) ?>" placeholder='<meta name="google-site-verification" content="...">'></label>
+          <label class="field span-3"><span><b>Google</b> Search Console — código de verificação (ou a tag inteira)</span><input name="google_verification" value="<?= e(setting('google_verification')) ?>" placeholder='<meta name="google-site-verification" content="...">'></label>
+          <label class="field span-3"><span><b>Bing</b> Webmaster Tools — código de verificação (ou a tag inteira)</span><input name="bing_verification" value="<?= e(setting('bing_verification')) ?>" placeholder='<meta name="msvalidate.01" content="...">'></label>
+          <label class="field span-3"><span><b>Yandex</b> Webmaster — código de verificação (ou a tag inteira)</span><input name="yandex_verification" value="<?= e(setting('yandex_verification')) ?>" placeholder='<meta name="yandex-verification" content="...">'></label>
           <label class="field"><span>Google Analytics (ID G-XXXX)</span><input name="google_analytics" value="<?= e(setting('google_analytics')) ?>" placeholder="G-XXXXXXXXXX"></label>
         </div>
         <div class="help" style="margin:14px 0">
           <b>Mapa do site para o Google:</b> <a href="<?= e(site_url(pretty_urls() ? url('sitemap.xml') : url('sitemap.php'))) ?>" target="_blank"><?= e(site_url(pretty_urls() ? url('sitemap.xml') : url('sitemap.php'))) ?></a><br>
-          Envie esse endereço no <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a> › Sitemaps. Ele se atualiza sozinho a cada título publicado.<br>
+          Envie esse endereço no <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a>, no <a href="https://www.bing.com/webmasters" target="_blank" rel="noopener">Bing Webmaster Tools</a> e no <a href="https://webmaster.yandex.com" target="_blank" rel="noopener">Yandex Webmaster</a> (em Sitemaps). Ele se atualiza sozinho a cada título publicado.<br>
           <span class="muted">Obs.: aberto no celular, o sitemap pode aparecer em branco ou como texto corrido. É normal: ele é feito para o Google ler, não para pessoas.</span>
         </div>
         <div class="btn-row">
