@@ -5,12 +5,15 @@ check_maintenance();
 $cat = in_str('categoria');
 $categories = q_all("SELECT DISTINCT category FROM channels WHERE status = 'active' AND category IS NOT NULL AND category <> '' ORDER BY category");
 $params = [];
-$sql = "SELECT * FROM channels WHERE status = 'active'";
+$where = "status = 'active'";
 if ($cat !== '') {
-    $sql .= ' AND category = ?';
+    $where .= ' AND category = ?';
     $params[] = $cat;
 }
-$channels = q_all($sql . ' ORDER BY sort, name', $params);
+$perPage = 60;
+$page = max(1, in_int('p', 1));
+$totalCh = (int)q_val("SELECT COUNT(*) FROM channels WHERE $where", $params);
+$channels = q_all("SELECT * FROM channels WHERE $where ORDER BY sort, name LIMIT $perPage OFFSET " . (($page - 1) * $perPage), $params);
 
 $pageTitle = 'TV Online';
 $canonical = site_url(page_url('tv'));
@@ -21,7 +24,7 @@ require __DIR__ . '/includes/header.php';
 ?>
 <div class="container page">
   <div class="page-head">
-    <h1><span class="live-pill">● AO VIVO</span> TV Online <small><?= count($channels) ?> canais</small></h1>
+    <h1><span class="live-pill">● AO VIVO</span> TV Online <small><?= $totalCh ?> canais</small></h1>
   </div>
   <?php if ($categories): ?>
   <div class="chips">
@@ -35,6 +38,7 @@ require __DIR__ . '/includes/header.php';
     <div class="channel-grid">
       <?php foreach ($channels as $ch) echo render_channel_card($ch); ?>
     </div>
+    <?= paginate($totalCh, $perPage, $page, page_url('tv', $cat !== '' ? 'categoria=' . urlencode($cat) : '')) ?>
   <?php else: ?>
     <div class="empty"><?= icon('live', 'ico ico-xl') ?><p>Nenhum canal disponível no momento.</p></div>
   <?php endif; ?>

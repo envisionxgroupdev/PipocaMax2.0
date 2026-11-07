@@ -25,12 +25,14 @@ function tv_http_get(string $url): string
         CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => true, CURLOPT_MAXREDIRS => 5,
         CURLOPT_TIMEOUT => 25, CURLOPT_CONNECTTIMEOUT => 8, CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
         CURLOPT_ENCODING => '', CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; PipocaMax)',
+        CURLOPT_NOPROGRESS => false,
+        CURLOPT_PROGRESSFUNCTION => fn($c, $dt, $d) => $d > 40 * 1024 * 1024 ? 1 : 0, // máx. 40 MB
     ]);
     $body = curl_exec($ch);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $err = curl_error($ch);
     curl_close($ch);
-    if ($body === false) throw new RuntimeException('Não consegui baixar a lista: ' . $err);
+    if ($body === false) throw new RuntimeException(str_contains($err, 'aborted') ? 'A lista é grande demais (mais de 40 MB).' : 'Não consegui baixar a lista: ' . $err);
     if ($code >= 400) throw new RuntimeException('O link da lista respondeu com erro ' . $code . '.');
     return (string)$body;
 }
@@ -57,7 +59,11 @@ function tv_parse(string $body): array
         return $items;
     }
     $data = json_decode($body, true);
-    if (!is_array($data)) throw new RuntimeException('Formato não reconhecido: a lista precisa ser M3U ou JSON.');
+    if (!is_array($data)) {
+        $start = mb_strtolower(substr(ltrim($body), 0, 200));
+        if (str_contains($start, '<html') || str_contains($start, '<!doctype')) throw new RuntimeException('O link abriu uma página de site (HTML), não uma lista de canais. Use o link direto da lista M3U ou JSON.');
+        throw new RuntimeException('Formato não reconhecido: a lista precisa ser M3U ou JSON.');
+    }
     // aceita {channels:[...]}, {data:[...]}, {items:[...]} ou uma lista direta
     foreach (['channels', 'data', 'items', 'canais', 'result', 'results'] as $k) {
         if (isset($data[$k]) && is_array($data[$k])) { $data = $data[$k]; break; }
@@ -78,44 +84,42 @@ function tv_parse(string $body): array
     return $items;
 }
 
-/** Importa/atualiza uma lista. Retorna ['added','updated','removed','total'] */
-function tv_import_source(array $src): array
+/** Normaliza os itens da lista: filtra categorias, remove repetidos e inválidos */
+function tv_normalize(array $src, array $items): array
 {
-    $items = tv_parse(tv_http_get($src['url']));
-    $res = ['added' => 0, 'updated' => 0, 'removed' => 0, 'total' => 0];
     $filter = array_filter(array_map('trim', explode(',', mb_strtolower((string)($src['groups'] ?? '')))));
-    $sid = (string)$src['id'];
-    $seen = [];
+    $rows = [];
+    foreach ($items as $it) {
+        $url = clean_url((string)($it['url'] ?? ''));
+        $name = trim((string)($it['name'] ?? ''));
+        if ($url === '' || $name === '') continue;
+        $group = trim((string)($it['group'] ?? ''));
+        if ($filter && !in_array(mb_strtolower($group), $filter, true)) continue;
+        $key = md5(mb_strtolower($name) . '|' . mb_strtolower($group));
+        if (isset($rows[$key])) continue;
+        $kind = player_kind_from_url($url);
+        if ($kind === 'embed' && preg_match('#\.m3u8?(\?|$)|/hls/|\.ts(\?|$)#i', $url)) $kind = 'hls';
+        $rows[$key] = ['k' => $key, 'n' => mb_substr($name, 0, 120), 'l' => clean_url((string)($it['logo'] ?? ''), true), 'g' => mb_substr($group, 0, 80), 'u' => $url, 't' => $kind];
+    }
+    return array_values($rows);
+}
+
+/** Grava um pedaço de canais (em transação) */
+function tv_upsert(string $sid, array $rows, bool $inactive = false): array
+{
+    $res = ['added' => 0, 'updated' => 0];
     $pdo = db();
     $pdo->beginTransaction();
     try {
-        foreach ($items as $it) {
-            $url = clean_url($it['url']);
-            if ($url === '' || trim($it['name']) === '') continue;
-            if ($filter && !in_array(mb_strtolower(trim($it['group'])), $filter, true)) continue;
-            $key = md5(mb_strtolower(trim($it['name'])) . '|' . mb_strtolower(trim($it['group'])));
-            if (isset($seen[$key])) continue;
-            $seen[$key] = true;
-            $kind = player_kind_from_url($url);
-            if ($kind === 'embed' && preg_match('#\.m3u8?(\?|$)|/hls/|\.ts(\?|$)#i', $url)) $kind = 'hls';
-            $logo = clean_url((string)$it['logo'], true) ?: null;
-            $cat = mb_substr(trim($it['group']), 0, 80) ?: null;
-            $ex = q_one('SELECT id FROM channels WHERE source = ? AND ext_key = ?', [$sid, $key]);
+        foreach ($rows as $r) {
+            $ex = q_one('SELECT id FROM channels WHERE source = ? AND ext_key = ?', [$sid, $r['k']]);
             if ($ex) {
-                q('UPDATE channels SET url = ?, kind = ?, logo = COALESCE(?, logo), category = ? WHERE id = ?', [$url, $kind, $logo, $cat, $ex['id']]);
+                q('UPDATE channels SET url = ?, kind = ?, logo = COALESCE(?, logo), category = ? WHERE id = ?', [$r['u'], $r['t'], $r['l'] ?: null, $r['g'] ?: null, $ex['id']]);
                 $res['updated']++;
             } else {
                 q('INSERT INTO channels (name, logo, category, url, kind, source, ext_key, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                    [mb_substr(trim($it['name']), 0, 120), $logo, $cat, $url, $kind, $sid, $key, !empty($src['inactive']) ? 'inactive' : 'active']);
+                    [$r['n'], $r['l'] ?: null, $r['g'] ?: null, $r['u'], $r['t'], $sid, $r['k'], $inactive ? 'inactive' : 'active']);
                 $res['added']++;
-            }
-        }
-        $res['total'] = count($seen);
-        // Sincronizar: remove os canais desta lista que não vieram mais
-        if (!empty($src['sync']) && $res['total'] > 0) {
-            $rows = q_all('SELECT id, ext_key FROM channels WHERE source = ?', [$sid]);
-            foreach ($rows as $r) {
-                if (!isset($seen[$r['ext_key']])) { q('DELETE FROM channels WHERE id = ?', [$r['id']]); $res['removed']++; }
             }
         }
         $pdo->commit();
@@ -123,6 +127,52 @@ function tv_import_source(array $src): array
         if ($pdo->inTransaction()) $pdo->rollBack();
         throw $e;
     }
+    return $res;
+}
+
+/** Remove os canais da lista que não vieram mais */
+function tv_sync(string $sid, array $keys): int
+{
+    if (!$keys) return 0;
+    $keep = array_flip($keys);
+    $n = 0;
+    foreach (q_all('SELECT id, ext_key FROM channels WHERE source = ?', [$sid]) as $r) {
+        if (!isset($keep[$r['ext_key']])) { q('DELETE FROM channels WHERE id = ?', [$r['id']]); $n++; }
+    }
+    return $n;
+}
+
+function tv_cache_file(string $sid): string
+{
+    $dir = PM_ROOT . '/includes/logs';
+    if (!is_dir($dir)) @mkdir($dir, 0750, true);
+    return $dir . '/tvq_' . preg_replace('/[^a-z0-9]/', '', $sid) . '.json';
+}
+
+function tv_find_source(string $sid): ?array
+{
+    foreach (tv_sources() as $s) if ($s['id'] === $sid) return $s;
+    return null;
+}
+
+function tv_update_source(string $sid, array $changes): void
+{
+    $list = tv_sources();
+    foreach ($list as $i => $s) if ($s['id'] === $sid) $list[$i] = array_merge($s, $changes);
+    tv_sources_save($list);
+}
+
+/** Importa/atualiza uma lista inteira de uma vez (usado pelo Cron, que não tem limite de tempo) */
+function tv_import_source(array $src): array
+{
+    $rows = tv_normalize($src, tv_parse(tv_http_get($src['url'])));
+    $res = ['added' => 0, 'updated' => 0, 'removed' => 0, 'total' => count($rows)];
+    foreach (array_chunk($rows, 300) as $chunk) {
+        $r = tv_upsert((string)$src['id'], $chunk, !empty($src['inactive']));
+        $res['added'] += $r['added'];
+        $res['updated'] += $r['updated'];
+    }
+    if (!empty($src['sync']) && $rows) $res['removed'] = tv_sync((string)$src['id'], array_column($rows, 'k'));
     return $res;
 }
 

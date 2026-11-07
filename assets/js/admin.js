@@ -431,3 +431,59 @@ document.querySelectorAll('[data-y]').forEach(function (b) {
     document.getElementById('yt').value = p[1];
   });
 });
+
+/* ===== Importação de listas de canais em partes ===== */
+(function () {
+  var box = document.getElementById('tvq');
+  if (!box) return;
+  var PMA = window.PM || {};
+  var post = function (action, data) {
+    var fd = new FormData(); fd.append('_csrf', PMA.csrf);
+    var qs = Object.keys(data).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(data[k]); }).join('&');
+    fd.append('_p', btoa(unescape(encodeURIComponent(qs))).split('').reverse().join(''));
+    return fetch(PMA.base + '/admin/ajax.php?action=' + action, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); });
+  };
+  var el = function (id) { return document.getElementById(id); };
+  var run = function (sid, name) {
+    var add = 0, upd = 0;
+    box.hidden = false; el('tvq-close').hidden = true;
+    el('tvq-title').textContent = 'Importando ' + (name || 'lista') + '…';
+    el('tvq-msg').textContent = 'Baixando a lista…'; el('tvq-bar').style.width = '3%';
+    el('tvq-add').textContent = '0'; el('tvq-upd').textContent = '0'; el('tvq-rem').textContent = '0';
+    var end = function (title, msg) { el('tvq-title').textContent = title; el('tvq-msg').textContent = msg || ''; el('tvq-close').hidden = false; };
+    el('tvq-close').onclick = function () { location.href = PMA.base + '/admin/canais.php#listas'; };
+    post('tv_prepare', { sid: sid }).then(function (j) {
+      if (!j.ok) return end('Não foi possível importar', j.error);
+      var total = j.total;
+      var step = function (off, tries) {
+        el('tvq-status').textContent = off + ' de ' + total;
+        el('tvq-bar').style.width = Math.max(3, Math.round(off / total * 100)) + '%';
+        if (off >= total) {
+          el('tvq-msg').textContent = 'Finalizando…';
+          return post('tv_finish', { sid: sid }).then(function (f) {
+            el('tvq-rem').textContent = f.removed || 0;
+            end('Lista importada!', total + ' canal(is) na lista.');
+          });
+        }
+        el('tvq-msg').textContent = 'Gravando canais…';
+        post('tv_chunk', { sid: sid, offset: off }).then(function (c) {
+          if (!c.ok) return end('Não foi possível importar', c.error);
+          add += c.added; upd += c.updated;
+          el('tvq-add').textContent = add; el('tvq-upd').textContent = upd;
+          step(c.next, 0);
+        }).catch(function () {
+          if (tries < 3) return setTimeout(function () { step(off, tries + 1); }, 3000);
+          end('A hospedagem não respondeu', 'Tente "Atualizar agora" de novo: ele continua sem duplicar.');
+        });
+      };
+      step(0, 0);
+    }).catch(function () { end('A hospedagem não respondeu', 'Não consegui baixar a lista agora. Tente de novo em alguns minutos.'); });
+  };
+  document.querySelectorAll('[data-tv-run]').forEach(function (b) {
+    b.addEventListener('click', function () { run(b.dataset.tvRun, b.dataset.tvName); });
+  });
+  if (box.dataset.autostart) {
+    var b = document.querySelector('[data-tv-run="' + box.dataset.autostart + '"]');
+    run(box.dataset.autostart, b ? b.dataset.tvName : '');
+  }
+})();

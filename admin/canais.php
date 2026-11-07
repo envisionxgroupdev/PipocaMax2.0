@@ -22,15 +22,11 @@ if (is_post()) {
                     'groups' => mb_substr(in_str('groups'), 0, 500),
                     'last' => 0, 'count' => 0, 'error' => '',
                 ];
-                // testa e importa já
-                $r = tv_import_source($src);
-                $src['last'] = time();
-                $src['count'] = $r['total'];
                 $found = false;
                 foreach ($list as $i => $s) if ($s['id'] === $src['id']) { $list[$i] = $src; $found = true; }
                 if (!$found) $list[] = $src;
                 tv_sources_save($list);
-                flash('success', "Lista \"{$src['name']}\" importada: {$r['added']} canal(is) novo(s), {$r['updated']} atualizado(s)" . ($r['removed'] ? ", {$r['removed']} removido(s)" : '') . '.');
+                redirect('admin/canais.php?importar=' . $src['id'] . '#listas'); // a importação roda em partes
             } elseif ($action === 'tv_run') {
                 foreach ($list as $i => $s) {
                     if ($s['id'] !== $sid) continue;
@@ -109,8 +105,18 @@ $edit = null;
 if (in_int('id')) $edit = q_one('SELECT * FROM channels WHERE id = ?', [in_int('id')]);
 $showForm = $edit || in_str('novo') === '1';
 $cat = in_str('categoria');
-$channels = $cat !== '' ? q_all('SELECT * FROM channels WHERE category = ? ORDER BY sort, name', [$cat]) : q_all('SELECT * FROM channels ORDER BY sort, name');
-$cats = q_all("SELECT category, COUNT(*) n FROM channels WHERE category IS NOT NULL AND category <> '' GROUP BY category ORDER BY category");
+$busca = in_str('q');
+$w = ['1=1']; $wp = [];
+if ($cat !== '') { $w[] = 'category = ?'; $wp[] = $cat; }
+if ($busca !== '') { $w[] = '(name LIKE ? OR category LIKE ?)'; array_push($wp, "%$busca%", "%$busca%"); }
+$wsql = implode(' AND ', $w);
+$perPage = 50;
+$page = max(1, in_int('p', 1));
+$totalCh = (int)q_val("SELECT COUNT(*) FROM channels WHERE $wsql", $wp);
+$channels = q_all("SELECT * FROM channels WHERE $wsql ORDER BY sort, name LIMIT $perPage OFFSET " . (($page - 1) * $perPage), $wp);
+$selfCh = url('admin/canais.php') . '?' . http_build_query(array_filter(['categoria' => $cat, 'q' => $busca]));
+$cats = q_all("SELECT category, COUNT(*) n FROM channels WHERE category IS NOT NULL AND category <> '' GROUP BY category ORDER BY n DESC LIMIT 30");
+usort($cats, fn($a, $b) => strcmp($a['category'], $b['category']));
 
 admin_header('TV Online', 'canais');
 ?>
@@ -161,7 +167,7 @@ admin_header('TV Online', 'canais');
             <?php if (!empty($s['error'])): ?><small class="tv-err">⚠ <?= e($s['error']) ?></small><?php endif; ?>
           </div>
           <div class="tv-src-actions">
-            <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="tv_run"><input type="hidden" name="sid" value="<?= e($s['id']) ?>"><button class="btn btn-sm" data-loading="Atualizando a lista…"><?= icon('download') ?> Atualizar agora</button></form>
+            <button type="button" class="btn btn-sm" data-tv-run="<?= e($s['id']) ?>" data-tv-name="<?= e($s['name']) ?>"><?= icon('download') ?> Atualizar agora</button>
             <form method="post" class="inline" data-confirm="Remover esta lista? Marque a opção se quiser apagar também os canais dela."><?= csrf_field() ?><input type="hidden" name="action" value="tv_del"><input type="hidden" name="sid" value="<?= e($s['id']) ?>">
               <label class="check small"><input type="checkbox" name="del_channels" value="1"> apagar canais</label>
               <button class="btn-ghost danger" title="Remover lista"><?= icon('trash') ?></button>
@@ -185,12 +191,18 @@ admin_header('TV Online', 'canais');
       <div class="span-3">
         <label class="check"><input type="checkbox" name="sync" value="1" checked> Manter sincronizada: quando um canal sair da lista, ele sai do site também</label>
       </div>
-      <div class="span-3"><button class="btn btn-red" data-loading="Baixando a lista de canais…"><?= icon('download') ?> Adicionar e importar</button>
+      <div class="span-3"><button class="btn btn-red"><?= icon('download') ?> Adicionar e importar</button>
         <span class="muted small">A atualização automática usa o mesmo Cron da Importação automática (ou as visitas ao site).</span></div>
     </form>
   </details>
 </section>
 
+<form class="filterbar" method="get">
+  <input type="hidden" name="categoria" value="<?= e($cat) ?>">
+  <input type="search" name="q" value="<?= e($busca) ?>" placeholder="Buscar canal pelo nome ou categoria">
+  <button class="btn">Buscar</button>
+  <span class="muted"><?= $totalCh ?> canal(is)</span>
+</form>
 <div class="table-wrap">
 <table class="table">
   <thead><tr><th>Canal</th><th>Categoria</th><th>Tipo</th><th>Views</th><th>Ativo</th><th></th></tr></thead>
@@ -213,6 +225,7 @@ admin_header('TV Online', 'canais');
   </tbody>
 </table>
 </div>
+<?= paginate($totalCh, $perPage, $page, $selfCh) ?>
 
 <details class="panel box-details">
   <summary><?= icon('download') ?> Importar canais de uma lista M3U</summary>
@@ -223,4 +236,13 @@ admin_header('TV Online', 'canais');
     <button class="btn btn-red">Importar lista</button>
   </form>
 </details>
+<div class="modal-q" id="tvq" hidden data-autostart="<?= e(in_str('importar')) ?>">
+  <div class="queue-box">
+    <div class="queue-head"><h2 id="tvq-title">Importando canais…</h2><span class="muted" id="tvq-status"></span></div>
+    <div class="progress"><span id="tvq-bar"></span></div>
+    <div class="queue-stats"><span><b id="tvq-add">0</b> novos</span><span><b id="tvq-upd">0</b> atualizados</span><span><b id="tvq-rem">0</b> removidos</span></div>
+    <p class="muted small" id="tvq-msg">Baixando a lista…</p>
+    <div class="btn-row"><button class="btn btn-red" id="tvq-close" hidden>Fechar</button></div>
+  </div>
+</div>
 <?php admin_footer(); ?>
