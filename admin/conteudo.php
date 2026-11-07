@@ -65,7 +65,7 @@ if (is_post()) {
 
             case 'sync':
                 if (!$c || !$c['tmdb_id']) throw new RuntimeException('Esse título não tem ID do TMDB.');
-                tmdb_import((int)$c['tmdb_id'], $c['type'], true);
+                tmdb_import((int)$c['tmdb_id'], $c['type'], true, ['season_limit' => 5]);
                 flash('success', 'Dados atualizados do TMDB' . ($c['type'] === 'movie' ? '.' : ' (novas temporadas e episódios incluídos).'));
                 break;
 
@@ -80,6 +80,7 @@ if (is_post()) {
                     q('UPDATE contents SET tmdb_id = ?, type = ? WHERE id = ?', [$tid, $ftype, $id]);
                 }
                 $newId = tmdb_import($tid, $ftype, true, [
+                    'season_limit' => 5,
                     'is_release' => isset($_POST['is_release']),
                     'featured' => isset($_POST['featured']),
                 ]);

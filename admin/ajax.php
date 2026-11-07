@@ -19,6 +19,12 @@ try {
             $r = run_autoimport(1, 20, true, in_int('series', 0));
             json_out(['ok' => true] + $r);
 
+        case 'season_queue':
+            if (!is_post()) json_out(['error' => 'Método inválido'], 405);
+            csrf_check();
+            $n = process_season_queue(5);
+            json_out(['ok' => true, 'done' => $n, 'left' => season_queue_count()]);
+
         case 'auto_log':
             if (!is_post()) json_out(['error' => 'Método inválido'], 405);
             csrf_check();
@@ -96,6 +102,7 @@ try {
                 json_out(['ok' => true, 'skipped' => true, 'item' => $item, 'id' => (int)$existing['id'], 'title' => $existing['title']]);
             }
             $id = tmdb_import($tid, $type, true, [
+                'season_limit' => 5,
                 'is_release' => in_str('is_release') === '1',
                 'featured' => in_str('featured') === '1',
                 'status' => in_str('draft') === '1' ? 'draft' : 'published',

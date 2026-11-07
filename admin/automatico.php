@@ -9,8 +9,17 @@ if (is_post()) {
     csrf_check();
     $action = in_str('action');
     if ($action === 'save') {
-        $src = array_values(array_intersect(array_keys(auto_sources()), (array)($_POST['sources'] ?? [])));
+        $types = array_values(array_intersect(['movie', 'series', 'anime'], (array)($_POST['types'] ?? [])));
+        $withReleases = isset($_POST['releases']);
+        $src = [];
+        if (in_array('movie', $types, true)) $src[] = 'year_movie';
+        if (in_array('series', $types, true)) $src[] = 'year_tv';
+        if (in_array('anime', $types, true)) $src[] = 'year_anime';
+        if ($withReleases && in_array('movie', $types, true)) $src[] = 'now_playing';
+        if ($withReleases && in_array('series', $types, true)) $src[] = 'on_air';
         set_setting('auto_enabled', isset($_POST['enabled']) ? '1' : '0');
+        set_setting('auto_types', implode(',', $types));
+        set_setting('auto_with_releases', $withReleases ? '1' : '0');
         set_setting('auto_sources', implode(',', $src));
         set_setting('auto_per_run', (string)max(1, min(50, in_int('per_run', 10))));
         set_setting('auto_interval', (string)max(5, min(1440, in_int('interval', 30))));
@@ -75,45 +84,70 @@ admin_header('Importação automática', 'auto');
 <div class="cols">
 <section class="panel">
   <div class="panel-head"><h2>O que publicar</h2></div>
+  <?php
+    $types = array_filter(explode(',', (string)setting('auto_types', '')));
+    if (!$types) { // compatibilidade com a versão anterior
+        if (array_intersect(['year_movie', 'now_playing', 'popular_movies', 'trending_movies', 'top_rated_movies', 'upcoming'], $chosen)) $types[] = 'movie';
+        if (array_intersect(['year_tv', 'on_air', 'popular_tv', 'trending_tv', 'top_rated_tv'], $chosen)) $types[] = 'series';
+        if (array_intersect(['year_anime', 'anime', 'anime_movies'], $chosen)) $types[] = 'anime';
+    }
+    [$yFrom, $yTo] = auto_year_range();
+    $yp = auto_year_progress();
+    $pages = (int)setting('auto_year_pages', '10');
+  ?>
   <form method="post" id="auto-form">
     <?= csrf_field() ?><input type="hidden" name="action" value="save">
-    <label class="toggle-row"><div><b>Importação automática</b><small>Publica sozinho os títulos novos das listas escolhidas, sem repetir os que você já tem.</small></div><input type="checkbox" name="enabled" value="1" <?= $enabled ? 'checked' : '' ?>><span class="switch-ui"></span></label>
+    <label class="toggle-row"><div><b>Importação automática</b><small>O site publica sozinho, sem repetir o que você já tem.</small></div><input type="checkbox" name="enabled" value="1" <?= $enabled ? 'checked' : '' ?>><span class="switch-ui"></span></label>
 
-    <p class="muted small" style="margin:0 0 8px">Listas do TMDB que o site vai seguir:</p>
-    <div class="source-grid">
-      <?php foreach (auto_sources() as $k => [$label, $t]): ?>
-        <label class="source"><input type="checkbox" name="sources[]" value="<?= $k ?>" <?= in_array($k, $chosen, true) ? 'checked' : '' ?>>
-          <span><b><?= e($label) ?></b><small><?= e(type_label($t === 'movie' && $k === 'anime_movies' ? 'movie' : $t)) ?></small></span></label>
+    <div class="step-label"><span>1</span> O que importar</div>
+    <div class="type-cards">
+      <?php foreach (['movie' => ['Filmes', 'film'], 'series' => ['Séries', 'series'], 'anime' => ['Animes', 'anime']] as $k => [$l, $ic]): ?>
+        <label class="type-card"><input type="checkbox" name="types[]" value="<?= $k ?>" <?= in_array($k, $types, true) ? 'checked' : '' ?>>
+          <?= icon($ic, 'ico tc-ico') ?><b><?= $l ?></b>
+          <small><?= $enabled && in_array($k, $types, true) ? 'agora em ' . (int)$yp[['movie' => 'year_movie', 'series' => 'year_tv', 'anime' => 'year_anime'][$k]] : '&nbsp;' ?></small>
+        </label>
       <?php endforeach; ?>
     </div>
 
-    <?php [$yFrom, $yTo] = auto_year_range(); $yp = auto_year_progress(); ?>
-    <div class="year-box">
-      <b><?= icon('film') ?> Listas "por ano"</b>
-      <p class="muted small">Pega os títulos mais populares de cada ano, do ano mais novo para o mais antigo. Bom para montar o catálogo com filmes e séries que já têm mais players disponíveis.</p>
-      <div class="form-row">
-        <span>De</span><input type="number" name="year_from" min="1900" max="<?= date('Y') ?>" value="<?= $yFrom ?>" class="w-year">
-        <span>até</span><input type="number" name="year_to" min="1900" max="<?= date('Y') + 1 ?>" value="<?= $yTo ?>" class="w-year">
-        <span>•</span><input type="number" name="year_pages" min="1" max="50" value="<?= (int)setting('auto_year_pages', '10') ?>" class="w-num"><span class="muted small">páginas por ano (20 títulos cada)</span>
+    <div class="step-label"><span>2</span> De quais anos</div>
+    <div class="year-pick">
+      <div class="year-inputs">
+        <label>De <input type="number" name="year_from" id="yf" min="1900" max="<?= date('Y') ?>" value="<?= $yFrom ?>" class="w-year"></label>
+        <label>até <input type="number" name="year_to" id="yt" min="1900" max="<?= date('Y') + 1 ?>" value="<?= $yTo ?>" class="w-year"></label>
       </div>
-      <?php if (array_intersect(['year_movie', 'year_tv', 'year_anime'], $chosen)): ?>
-        <p class="small year-now">Agora em:
-          <?php foreach (['year_movie' => 'Filmes', 'year_tv' => 'Séries', 'year_anime' => 'Animes'] as $k => $l) if (in_array($k, $chosen, true)) echo '<span class="pill">' . $l . ' ' . (int)$yp[$k] . '</span> '; ?>
-        </p>
-      <?php endif; ?>
+      <div class="year-chips">
+        <button type="button" class="chip-btn" data-y="<?= date('Y') - 4 ?>-<?= date('Y') ?>">Últimos 5 anos</button>
+        <button type="button" class="chip-btn" data-y="2010-2019">Anos 2010</button>
+        <button type="button" class="chip-btn" data-y="2000-2009">Anos 2000</button>
+        <button type="button" class="chip-btn" data-y="1990-1999">Anos 90</button>
+        <button type="button" class="chip-btn" data-y="1980-<?= date('Y') ?>">Tudo (1980 até hoje)</button>
+      </div>
+      <p class="muted small">Começa pelo ano mais novo e vai descendo, sempre pelos títulos mais populares de cada ano.</p>
     </div>
 
-    <div class="form-grid" style="margin-top:16px">
-      <label class="field"><span>Títulos novos por vez</span><input type="number" name="per_run" min="1" max="50" value="<?= $perRun ?>"></label>
-      <label class="field"><span>Rodar a cada (minutos)</span><input type="number" name="interval" min="5" max="1440" value="<?= $interval ?>"></label>
-      <label class="field"><span>Publicar como</span><select name="status"><option value="published">Publicado</option><option value="draft" <?= setting('auto_status') === 'draft' ? 'selected' : '' ?>>Rascunho (eu reviso antes)</option></select></label>
-      <label class="field"><span>Marcar como lançamento se saiu há menos de (dias)</span><input type="number" name="release_days" min="0" max="365" value="<?= (int)setting('auto_release_days', '60') ?>"></label>
+    <div class="step-label"><span>3</span> Quantos títulos de cada ano</div>
+    <div class="seg">
+      <?php foreach ([5 => '100', 10 => '200', 25 => '500', 50 => '1.000'] as $pg => $l): ?>
+        <label><input type="radio" name="year_pages" value="<?= $pg ?>" <?= $pages === $pg ? 'checked' : '' ?>><span><?= $l ?></span></label>
+      <?php endforeach; ?>
     </div>
-    <label class="toggle-row" style="margin-top:10px"><div><b>Atualizar séries e animes</b><small>Confere as séries que já estão no site e adiciona os episódios novos que saírem.</small></div><input type="checkbox" name="update_series" value="1" <?= setting('auto_update_series', '1') === '1' ? 'checked' : '' ?>><span class="switch-ui"></span></label>
 
-    <p class="muted small" style="margin:6px 0 8px">Como o site vai acordar sozinho:</p>
-    <label class="source wide"><input type="radio" name="mode" value="cron" <?= $mode === 'cron' ? 'checked' : '' ?>><span><b>Cron da Hostinger (recomendado)</b><small>Roda no horário certo, mesmo sem ninguém visitando o site. Precisa configurar uma vez (veja ao lado).</small></span></label>
-    <label class="source wide"><input type="radio" name="mode" value="visits" <?= $mode === 'visits' ? 'checked' : '' ?>><span><b>Pelas visitas</b><small>Não precisa configurar nada: roda um pouquinho quando alguém abre o site. Se ninguém visitar, não roda.</small></span></label>
+    <label class="toggle-row" style="margin-top:18px"><div><b>Também pegar os lançamentos do momento</b><small>Filmes nos cinemas e séries no ar. Costumam ter menos players disponíveis.</small></div><input type="checkbox" name="releases" value="1" <?= setting('auto_with_releases') === '1' ? 'checked' : '' ?>><span class="switch-ui"></span></label>
+    <label class="toggle-row"><div><b>Atualizar séries e animes</b><small>Adiciona os episódios novos das séries que já estão no site.</small></div><input type="checkbox" name="update_series" value="1" <?= setting('auto_update_series', '1') === '1' ? 'checked' : '' ?>><span class="switch-ui"></span></label>
+
+    <details class="box-details"><summary><?= icon('settings') ?> Mais opções</summary>
+      <div style="padding:14px 16px">
+        <div class="form-grid">
+          <label class="field"><span>Títulos novos por vez</span><input type="number" name="per_run" min="1" max="50" value="<?= $perRun ?>"></label>
+          <label class="field"><span>Rodar a cada (minutos)</span><input type="number" name="interval" min="5" max="1440" value="<?= $interval ?>"></label>
+          <label class="field"><span>Publicar como</span><select name="status"><option value="published">Publicado</option><option value="draft" <?= setting('auto_status') === 'draft' ? 'selected' : '' ?>>Rascunho (eu reviso antes)</option></select></label>
+          <label class="field"><span>Marcar como lançamento se saiu há menos de (dias)</span><input type="number" name="release_days" min="0" max="365" value="<?= (int)setting('auto_release_days', '60') ?>"></label>
+        </div>
+        <p class="muted small" style="margin:14px 0 8px">Como o site vai acordar sozinho:</p>
+        <label class="source wide"><input type="radio" name="mode" value="cron" <?= $mode === 'cron' ? 'checked' : '' ?>><span><b>Cron da Hostinger (recomendado)</b><small>Roda no horário certo, mesmo sem visitas.</small></span></label>
+        <label class="source wide"><input type="radio" name="mode" value="visits" <?= $mode === 'visits' ? 'checked' : '' ?>><span><b>Pelas visitas</b><small>Sem configurar nada, mas só roda quando alguém abre o site.</small></span></label>
+      </div>
+    </details>
 
     <button class="btn btn-red btn-lg" style="margin-top:14px">Salvar</button>
   </form>

@@ -62,9 +62,13 @@ function admin_header(string $title, string $active = ''): void
 
 function admin_footer(): void
 {
+    $sq = season_queue_count();
     ?>
   </main>
 </div>
+<?php if ($sq > 0): ?>
+<div class="sq-bar" id="sq-bar" data-left="<?= $sq ?>"><span class="sq-spin"></span><span id="sq-text">Baixando episódios de séries longas: <?= $sq ?> temporada(s) na fila…</span></div>
+<?php endif; ?>
 <script>window.PM = { base: <?= json_encode(BASE_URL) ?>, csrf: <?= json_encode(csrf_token()) ?> };</script>
 <script src="<?= e(asset('js/admin.js')) ?>"></script>
 </body>

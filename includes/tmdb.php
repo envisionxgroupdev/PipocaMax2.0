@@ -28,8 +28,10 @@ function tmdb_request(string $path, array $params = []): array
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 20,
-            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_CONNECTTIMEOUT => 8,
+            CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4, // evita travas de IPv6 em hospedagens compartilhadas
+            CURLOPT_ENCODING => '',
             CURLOPT_HTTPHEADER => $headers,
             CURLOPT_FOLLOWLOCATION => true,
         ]);
@@ -274,6 +276,15 @@ function tmdb_import(int $tmdbId, string $type, bool $withSeasons = true, array 
             }
             $nums[] = (int)$s['season_number'];
         }
+        // Só a partir de uma temporada (usado para atualizar séries: pega a última e as novas)
+        if (isset($extra['seasons_from'])) {
+            $nums = array_values(array_filter($nums, fn($n) => $n >= (int)$extra['seasons_from']));
+        }
+        // Séries longas: baixa algumas temporadas agora e deixa o resto na fila (não estoura o tempo da hospedagem)
+        if (!empty($extra['season_limit']) && count($nums) > (int)$extra['season_limit']) {
+            season_queue_add($id, $tmdbId, array_slice($nums, (int)$extra['season_limit']));
+            $nums = array_slice($nums, 0, (int)$extra['season_limit']);
+        }
         // Busca até 20 temporadas por pedido ao TMDB (muito mais rápido em séries longas)
         foreach (array_chunk($nums, 20) as $chunk) {
             $batch = tmdb_request("tv/$tmdbId", ['append_to_response' => implode(',', array_map(fn($n) => "season/$n", $chunk))]);
@@ -294,6 +305,61 @@ function tmdb_import(int $tmdbId, string $type, bool $withSeasons = true, array 
 function tmdb_import_season(int $contentId, int $tmdbId, int $seasonNumber): int
 {
     return tmdb_save_season($contentId, $seasonNumber, tmdb_request("tv/$tmdbId/season/$seasonNumber"));
+}
+
+/* ---------- Fila de temporadas (séries longas são baixadas aos poucos) ---------- */
+function season_queue(): array
+{
+    return json_decode((string)setting('season_queue', '[]'), true) ?: [];
+}
+
+function season_queue_add(int $contentId, int $tmdbId, array $nums): void
+{
+    $q = season_queue();
+    foreach ($q as &$item) {
+        if ((int)$item['c'] === $contentId) {
+            $item['n'] = array_values(array_unique(array_merge($item['n'], $nums)));
+            set_setting('season_queue', json_encode($q));
+            return;
+        }
+    }
+    unset($item);
+    $q[] = ['c' => $contentId, 't' => $tmdbId, 'n' => array_values($nums)];
+    set_setting('season_queue', json_encode($q));
+}
+
+function season_queue_count(): int
+{
+    return array_sum(array_map(fn($i) => count($i['n']), season_queue()));
+}
+
+/** Baixa até $max temporadas da fila. Retorna quantas baixou. */
+function process_season_queue(int $max = 5): int
+{
+    $q = season_queue();
+    if (!$q) return 0;
+    $item = $q[0];
+    if (!q_val('SELECT 1 FROM contents WHERE id = ?', [(int)$item['c']])) {
+        array_shift($q);
+        set_setting('season_queue', json_encode($q));
+        return 0;
+    }
+    $now = array_slice($item['n'], 0, $max);
+    $batch = tmdb_request('tv/' . (int)$item['t'], ['append_to_response' => implode(',', array_map(fn($n) => "season/$n", $now))]);
+    foreach ($now as $n) {
+        if (is_array($batch["season/$n"] ?? null)) tmdb_save_season((int)$item['c'], (int)$n, $batch["season/$n"]);
+    }
+    $q = season_queue(); // relê (pode ter mudado)
+    foreach ($q as $k => &$it) {
+        if ((int)$it['c'] === (int)$item['c']) {
+            $it['n'] = array_values(array_diff($it['n'], $now));
+            if (!$it['n']) unset($q[$k]);
+            break;
+        }
+    }
+    unset($it);
+    set_setting('season_queue', json_encode(array_values($q)));
+    return count($now);
 }
 
 /** Grava uma temporada (dados já baixados do TMDB) numa única transação */

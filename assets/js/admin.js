@@ -403,3 +403,31 @@ document.querySelectorAll('[data-copy]').forEach(function (b) {
     paint(); step();
   });
 })();
+
+/* ===== Fila de temporadas: com o painel aberto, termina de baixar séries longas aos poucos ===== */
+(function () {
+  var bar = document.getElementById('sq-bar');
+  if (!bar) return;
+  var PMA = window.PM || {}, fails = 0;
+  var tick = function () {
+    var fd = new FormData(); fd.append('_csrf', PMA.csrf);
+    fetch(PMA.base + '/admin/ajax.php?action=season_queue', { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        fails = 0;
+        if (!j.left) { document.getElementById('sq-text').textContent = 'Episódios baixados ✓'; bar.classList.add('done'); setTimeout(function () { bar.remove(); }, 2500); return; }
+        document.getElementById('sq-text').textContent = 'Baixando episódios de séries longas: ' + j.left + ' temporada(s) na fila…';
+        setTimeout(tick, 800);
+      })
+      .catch(function () { if (++fails < 5) setTimeout(tick, 4000); });
+  };
+  setTimeout(tick, 1200);
+})();
+// Atalhos de anos
+document.querySelectorAll('[data-y]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var p = b.dataset.y.split('-');
+    document.getElementById('yf').value = p[0];
+    document.getElementById('yt').value = p[1];
+  });
+});

@@ -63,6 +63,14 @@ function run_autoimport(?int $limit = null, int $maxSeconds = 50, bool $force = 
     $errMsgs = [];
 
     try {
+        // 0) Termina de baixar temporadas de séries longas que ficaram na fila
+        while (season_queue() && time() - $start < $maxSeconds) {
+            $sum['seasons'] = ($sum['seasons'] ?? 0) + process_season_queue(5);
+            if (!empty($GLOBALS['PM_AUTO_QUIET'])) break; // "Rodar agora": um pedaço por pedido
+        }
+        if (!empty($GLOBALS['PM_AUTO_QUIET']) && !empty($sum['seasons'])) {
+            return $sum + ['queue' => season_queue_count()];
+        }
         // 1) Títulos novos, revezando entre as fontes escolhidas
         $si = (int)($cursor['_src'] ?? 0);
         $emptyRounds = 0;
@@ -97,7 +105,7 @@ function run_autoimport(?int $limit = null, int $maxSeconds = 50, bool $force = 
                         $isRelease = strtotime($r['date']) >= strtotime("-$releaseDays days");
                     }
                     if (in_array($src, ['now_playing', 'upcoming'], true)) $isRelease = true;
-                    $id = tmdb_import((int)$r['tmdb_id'], $type, true, ['is_release' => $isRelease, 'status' => $status]);
+                    $id = tmdb_import((int)$r['tmdb_id'], $type, true, ['is_release' => $isRelease, 'status' => $status, 'season_limit' => 5]);
                     $sum['imported']++;
                     $found++;
                     $sum['titles'][] = $r['title'];
@@ -135,7 +143,8 @@ function run_autoimport(?int $limit = null, int $maxSeconds = 50, bool $force = 
                 if (time() - $start >= $maxSeconds) break;
                 try {
                     $before = (int)q_val('SELECT COUNT(*) FROM episodes WHERE content_id = ?', [$s['id']]);
-                    tmdb_import((int)$s['tmdb_id'], $s['type'], true);
+                    $lastSeason = (int)q_val('SELECT COALESCE(MAX(season_number), 1) FROM seasons WHERE content_id = ?', [$s['id']]);
+                    tmdb_import((int)$s['tmdb_id'], $s['type'], true, ['seasons_from' => $lastSeason, 'season_limit' => 5]);
                     q('UPDATE contents SET updated_at = NOW() WHERE id = ?', [$s['id']]);
                     $after = (int)q_val('SELECT COUNT(*) FROM episodes WHERE content_id = ?', [$s['id']]);
                     if ($after > $before) {
