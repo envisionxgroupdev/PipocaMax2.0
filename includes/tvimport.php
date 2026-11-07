@@ -62,26 +62,83 @@ function tv_parse(string $body): array
     if (!is_array($data)) {
         $start = mb_strtolower(substr(ltrim($body), 0, 200));
         if (str_contains($start, '<html') || str_contains($start, '<!doctype')) throw new RuntimeException('O link abriu uma página de site (HTML), não uma lista de canais. Use o link direto da lista M3U ou JSON.');
+        if (ltrim($body) !== '' && in_array(ltrim($body)[0], ['{', '['], true)) throw new RuntimeException('O JSON da lista está com defeito (' . json_last_error_msg() . ').');
         throw new RuntimeException('Formato não reconhecido: a lista precisa ser M3U ou JSON.');
     }
-    // aceita {channels:[...]}, {data:[...]}, {items:[...]} ou uma lista direta
-    foreach (['channels', 'data', 'items', 'canais', 'result', 'results'] as $k) {
-        if (isset($data[$k]) && is_array($data[$k])) { $data = $data[$k]; break; }
-    }
-    $pick = function (array $r, array $keys) {
-        foreach ($keys as $k) if (isset($r[$k]) && is_scalar($r[$k]) && (string)$r[$k] !== '') return (string)$r[$k];
-        return '';
-    };
-    foreach ($data as $r) {
-        if (!is_array($r)) continue;
-        $items[] = [
-            'name' => $pick($r, ['name', 'title', 'nome', 'channel', 'canal']),
-            'logo' => $pick($r, ['logo', 'icon', 'image', 'imagem', 'thumbnail', 'tvg_logo']),
-            'group' => $pick($r, ['category', 'categoria', 'group', 'grupo', 'genre', 'genero']),
-            'url' => $pick($r, ['url', 'stream', 'stream_url', 'link', 'embed', 'src', 'm3u8', 'file']),
-        ];
+    $items = tv_json_walk($data, '');
+    if (!$items) {
+        $keys = tv_json_keys($data);
+        throw new RuntimeException('O JSON foi lido, mas não achei canais com nome e link.' . ($keys ? ' Campos encontrados: ' . implode(', ', array_slice($keys, 0, 15)) . '.' : ''));
     }
     return $items;
+}
+
+/** Procura canais em qualquer parte do JSON (listas, grupos por categoria, várias camadas) */
+function tv_json_walk($node, string $group, int $depth = 0): array
+{
+    static $nameKeys = ['name', 'nome', 'title', 'titulo', 'channel', 'canal', 'channel_name', 'label', 'tvg_name', 'tvg-name'];
+    static $urlKeys = ['url', 'stream', 'stream_url', 'streamurl', 'streamUrl', 'link', 'embed', 'embed_url', 'src', 'source', 'm3u8', 'hls', 'file', 'playback_url', 'play_url', 'video', 'video_url', 'href', 'iframe'];
+    static $logoKeys = ['logo', 'icon', 'image', 'imagem', 'img', 'thumbnail', 'thumb', 'poster', 'tvg_logo', 'tvg-logo', 'logo_url', 'cover'];
+    static $groupKeys = ['category', 'categoria', 'group', 'grupo', 'genre', 'genero', 'group_title', 'group-title', 'category_name'];
+    if ($depth > 8 || !is_array($node)) return [];
+    $pick = function (array $r, array $keys) {
+        foreach ($keys as $k) {
+            if (isset($r[$k]) && is_scalar($r[$k]) && trim((string)$r[$k]) !== '') return trim((string)$r[$k]);
+            if (isset($r[$k]) && is_array($r[$k])) { // ex.: "stream": {"url": "..."} ou "logo": {"src": "..."}
+                foreach (['url', 'src', 'href', 'link', 'name'] as $sub) if (isset($r[$k][$sub]) && is_scalar($r[$k][$sub])) return trim((string)$r[$k][$sub]);
+            }
+        }
+        return '';
+    };
+    $out = [];
+    $isList = array_keys($node) === range(0, count($node) - 1);
+    if (!$isList) {
+        $url = $pick($node, $urlKeys);
+        $name = $pick($node, $nameKeys);
+        if ($url !== '' && preg_match('#^https?://#i', $url) && $name !== '') {
+            return [[
+                'name' => $name,
+                'logo' => $pick($node, $logoKeys),
+                'group' => $pick($node, $groupKeys) ?: $group,
+                'url' => $url,
+            ]];
+        }
+        // objeto de grupo: {"name":"Esportes","channels":[...]} ou {"Esportes":[...], "Notícias":[...]}
+        $g = $pick($node, array_merge($groupKeys, ['name', 'nome', 'title']));
+        foreach ($node as $k => $v) {
+            if (!is_array($v)) continue;
+            $childGroup = $group;
+            if (is_string($k) && !in_array(mb_strtolower($k), ['channels', 'canais', 'data', 'items', 'result', 'results', 'list', 'lista', 'streams', 'playlist', 'response'], true) && !is_numeric($k)) {
+                $childGroup = $k;
+            } elseif ($g !== '') {
+                $childGroup = $g;
+            }
+            $out = array_merge($out, tv_json_walk($v, $childGroup, $depth + 1));
+        }
+        return $out;
+    }
+    foreach ($node as $v) {
+        if (is_string($v) && preg_match('#^https?://#i', $v)) {
+            // lista só de links
+            $n = urldecode(pathinfo((string)parse_url($v, PHP_URL_PATH), PATHINFO_FILENAME));
+            $out[] = ['name' => $n ?: 'Canal', 'logo' => '', 'group' => $group, 'url' => $v];
+        } elseif (is_array($v)) {
+            $out = array_merge($out, tv_json_walk($v, $group, $depth + 1));
+        }
+    }
+    return $out;
+}
+
+/** Lista os nomes de campos do JSON (para mensagens de erro) */
+function tv_json_keys($node, int $depth = 0, array &$acc = []): array
+{
+    if ($depth > 4 || !is_array($node)) return array_keys($acc);
+    foreach ($node as $k => $v) {
+        if (is_string($k)) $acc[$k] = true;
+        if (is_array($v)) tv_json_keys($v, $depth + 1, $acc);
+        if (count($acc) > 30) break;
+    }
+    return array_keys($acc);
 }
 
 /** Normaliza os itens da lista: filtra categorias, remove repetidos e inválidos */
