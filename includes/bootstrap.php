@@ -107,6 +107,7 @@ require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/tmdb.php';
 require_once __DIR__ . '/autoimport.php';
 require_once __DIR__ . '/ads.php';
+require_once __DIR__ . '/tvimport.php';
 
 try {
     db();
@@ -129,5 +130,11 @@ if ((int)setting('db_version', '1') < 2) {
         last_attempt DATETIME NOT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     set_setting('db_version', '2');
+}
+if ((int)setting('db_version', '1') < 3) {
+    try { q('ALTER TABLE channels ADD COLUMN source VARCHAR(40) NULL'); } catch (Throwable $e) {}
+    try { q('ALTER TABLE channels ADD COLUMN ext_key VARCHAR(64) NULL'); } catch (Throwable $e) {}
+    try { q('CREATE INDEX idx_ch_source ON channels (source, ext_key)'); } catch (Throwable $e) {}
+    set_setting('db_version', '3');
 }
 refresh_current_user();

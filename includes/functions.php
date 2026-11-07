@@ -449,7 +449,7 @@ function render_row(string $title, array $items, ?string $more = null, string $i
 
 function render_channel_card(array $ch): string
 {
-    $logo = $ch['logo'] ? '<img loading="lazy" src="' . e(img($ch['logo'])) . '" alt="' . e($ch['name']) . '">' : '<span class="ch-initial">' . e(mb_substr($ch['name'], 0, 2)) . '</span>';
+    $logo = $ch['logo'] ? '<img loading="lazy" src="' . e(img($ch['logo'])) . '" alt="' . e($ch['name']) . '" onerror="this.outerHTML=\'<span class=ch-initial>' . e(mb_substr($ch['name'], 0, 2)) . '</span>\'">' : '<span class="ch-initial">' . e(mb_substr($ch['name'], 0, 2)) . '</span>';
     return '<a class="channel" href="' . e(channel_url($ch)) . '"><div class="channel-logo">' . $logo
         . '<span class="live-dot">AO VIVO</span></div><h3>' . e($ch['name']) . '</h3>'
         . ($ch['category'] ? '<p>' . e($ch['category']) . '</p>' : '') . '</a>';

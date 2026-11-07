@@ -20,6 +20,8 @@ if (!$cli) {
         exit('Chave inválida.');
     }
 }
+$tv = tv_refresh_due();
+if ($tv) echo "Listas de TV atualizadas: $tv\n";
 if (setting('auto_enabled') !== '1') {
     exit("Importação automática desligada no painel.\n");
 }

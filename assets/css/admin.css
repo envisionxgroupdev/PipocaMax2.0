@@ -427,3 +427,11 @@ input[type=checkbox] { accent-color: var(--red); width: 16px; height: 16px; }
 .seg.small span { padding: 6px 4px; font-size: 12.5px; }
 .save-bar { position: sticky; bottom: 0; padding: 12px 0; background: linear-gradient(0deg, var(--bg) 70%, transparent); z-index: 5; }
 @media (max-width: 600px) { .slots { grid-template-columns: 1fr; } }
+.tv-sources { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.tv-src { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; flex-wrap: wrap; }
+.tv-src.err { border-color: rgba(210, 153, 34, .5); }
+.tv-src-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.tv-src-info small { color: var(--muted); font-size: 12px; }
+.tv-src-info .tv-err { color: #e3b341; }
+.tv-src-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.check.small { font-size: 12px; color: var(--muted); }

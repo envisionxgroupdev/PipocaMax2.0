@@ -203,6 +203,20 @@ function auto_year_progress(): array
 /** Modo "visitas": roda um lote pequeno depois de entregar a página ao visitante */
 function auto_maybe_run_on_visit(): void
 {
+    // Listas de TV com atualização automática (independe da importação de filmes)
+    $tvDue = false;
+    foreach (tv_sources() as $s) {
+        if ((int)($s['every'] ?? 0) > 0 && (int)($s['last'] ?? 0) < time() - (int)$s['every'] * 3600) { $tvDue = true; break; }
+    }
+    if ($tvDue && (int)setting('tv_last_try', '0') < time() - 600 && (function_exists('fastcgi_finish_request') || function_exists('litespeed_finish_request'))) {
+        set_setting('tv_last_try', (string)time());
+        register_shutdown_function(function () {
+            if (function_exists('litespeed_finish_request')) litespeed_finish_request(); else fastcgi_finish_request();
+            ignore_user_abort(true);
+            tv_refresh_due(25);
+        });
+        return;
+    }
     if (setting('auto_enabled') !== '1' || setting('auto_mode', 'cron') !== 'visits' || setting('maintenance') === '1') return;
     $interval = max(5, (int)setting('auto_interval', '30')) * 60;
     if ((int)setting('auto_last_run', '0') > time() - $interval) return;

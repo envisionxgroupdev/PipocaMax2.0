@@ -5,6 +5,62 @@ if (is_post()) {
     csrf_check();
     $action = in_str('action');
     $id = in_int('id');
+    if (in_array($action, ['tv_add', 'tv_run', 'tv_del', 'tv_edit'], true)) {
+        @set_time_limit(120);
+        $list = tv_sources();
+        $sid = in_str('sid');
+        try {
+            if ($action === 'tv_add' || $action === 'tv_edit') {
+                $urlv = clean_url(in_str('url'));
+                if ($urlv === '') throw new RuntimeException('Informe o link da lista (começando com http:// ou https://).');
+                $src = [
+                    'id' => $action === 'tv_edit' && $sid !== '' ? $sid : 'l' . substr(bin2hex(random_bytes(4)), 0, 7),
+                    'name' => mb_substr(in_str('name') ?: 'Lista de canais', 0, 60),
+                    'url' => $urlv,
+                    'every' => max(0, min(168, in_int('every', 24))),
+                    'sync' => isset($_POST['sync']),
+                    'groups' => mb_substr(in_str('groups'), 0, 500),
+                    'last' => 0, 'count' => 0, 'error' => '',
+                ];
+                // testa e importa já
+                $r = tv_import_source($src);
+                $src['last'] = time();
+                $src['count'] = $r['total'];
+                $found = false;
+                foreach ($list as $i => $s) if ($s['id'] === $src['id']) { $list[$i] = $src; $found = true; }
+                if (!$found) $list[] = $src;
+                tv_sources_save($list);
+                flash('success', "Lista \"{$src['name']}\" importada: {$r['added']} canal(is) novo(s), {$r['updated']} atualizado(s)" . ($r['removed'] ? ", {$r['removed']} removido(s)" : '') . '.');
+            } elseif ($action === 'tv_run') {
+                foreach ($list as $i => $s) {
+                    if ($s['id'] !== $sid) continue;
+                    try {
+                        $r = tv_import_source($s);
+                        $list[$i]['last'] = time(); $list[$i]['count'] = $r['total']; $list[$i]['error'] = '';
+                        flash('success', "Lista atualizada: {$r['added']} novo(s), {$r['updated']} atualizado(s)" . ($r['removed'] ? ", {$r['removed']} removido(s)" : '') . '.');
+                    } catch (Throwable $e) {
+                        $list[$i]['error'] = $e->getMessage();
+                        throw $e;
+                    } finally {
+                        tv_sources_save($list);
+                    }
+                }
+            } elseif ($action === 'tv_del') {
+                $list = array_values(array_filter($list, fn($s) => $s['id'] !== $sid));
+                tv_sources_save($list);
+                if (isset($_POST['del_channels'])) {
+                    q('DELETE FROM channels WHERE source = ?', [$sid]);
+                    flash('success', 'Lista e seus canais removidos.');
+                } else {
+                    q('UPDATE channels SET source = NULL WHERE source = ?', [$sid]);
+                    flash('success', 'Lista removida (os canais continuam no site).');
+                }
+            }
+        } catch (Throwable $e) {
+            flash('error', $e->getMessage());
+        }
+        redirect('admin/canais.php#listas');
+    }
     if ($action === 'save') {
         $name = mb_substr(in_str('name'), 0, 120);
         $u = clean_url(in_str('url'));
@@ -91,13 +147,57 @@ admin_header('TV Online', 'canais');
 </section>
 <?php endif; ?>
 
+<section class="panel" id="listas">
+  <div class="panel-head"><h2><?= icon('live') ?> Listas de canais por link (API)</h2><span class="muted small">M3U, M3U8 ou JSON</span></div>
+  <?php $sources = tv_sources(); ?>
+  <?php if ($sources): ?>
+    <div class="tv-sources">
+      <?php foreach ($sources as $s): $nCh = (int)q_val('SELECT COUNT(*) FROM channels WHERE source = ?', [$s['id']]); ?>
+        <div class="tv-src<?= !empty($s['error']) ? ' err' : '' ?>">
+          <div class="tv-src-info">
+            <b><?= e($s['name']) ?></b>
+            <small class="ellipsis"><?= e($s['url']) ?></small>
+            <small><?= $nCh ?> canal(is) no site • <?= (int)$s['every'] ? 'atualiza a cada ' . (int)$s['every'] . 'h' : 'atualização manual' ?><?= !empty($s['sync']) ? ' • sincronizada' : '' ?><?= !empty($s['last']) ? ' • última: ' . e(time_ago(date('Y-m-d H:i:s', (int)$s['last']))) : '' ?></small>
+            <?php if (!empty($s['error'])): ?><small class="tv-err">⚠ <?= e($s['error']) ?></small><?php endif; ?>
+          </div>
+          <div class="tv-src-actions">
+            <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="tv_run"><input type="hidden" name="sid" value="<?= e($s['id']) ?>"><button class="btn btn-sm" data-loading="Atualizando a lista…"><?= icon('download') ?> Atualizar agora</button></form>
+            <form method="post" class="inline" data-confirm="Remover esta lista? Marque a opção se quiser apagar também os canais dela."><?= csrf_field() ?><input type="hidden" name="action" value="tv_del"><input type="hidden" name="sid" value="<?= e($s['id']) ?>">
+              <label class="check small"><input type="checkbox" name="del_channels" value="1"> apagar canais</label>
+              <button class="btn-ghost danger" title="Remover lista"><?= icon('trash') ?></button>
+            </form>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
+  <details class="box-details" <?= $sources ? '' : 'open' ?>>
+    <summary><?= icon('plus') ?> Adicionar lista por link</summary>
+    <form method="post" class="form-grid" style="padding:14px 16px">
+      <?= csrf_field() ?><input type="hidden" name="action" value="tv_add">
+      <label class="field"><span>Nome da lista</span><input name="name" placeholder="Ex: Canais abertos"></label>
+      <label class="field span-2"><span>Link da lista (M3U, M3U8 ou JSON)</span><input name="url" required placeholder="https://…/lista.m3u"></label>
+      <label class="field"><span>Atualizar automaticamente</span>
+        <select name="every"><option value="0">Não (só manual)</option><option value="6">A cada 6 horas</option><option value="12">A cada 12 horas</option><option value="24" selected>1 vez por dia</option><option value="72">A cada 3 dias</option><option value="168">1 vez por semana</option></select>
+      </label>
+      <label class="field span-2"><span>Só estas categorias (opcional, separadas por vírgula)</span><input name="groups" placeholder="Ex: Notícias, Esportes, Filmes"></label>
+      <div class="span-3">
+        <label class="check"><input type="checkbox" name="sync" value="1" checked> Manter sincronizada: quando um canal sair da lista, ele sai do site também</label>
+      </div>
+      <div class="span-3"><button class="btn btn-red" data-loading="Baixando a lista de canais…"><?= icon('download') ?> Adicionar e importar</button>
+        <span class="muted small">A atualização automática usa o mesmo Cron da Importação automática (ou as visitas ao site).</span></div>
+    </form>
+  </details>
+</section>
+
 <div class="table-wrap">
 <table class="table">
   <thead><tr><th>Canal</th><th>Categoria</th><th>Tipo</th><th>Views</th><th>Ativo</th><th></th></tr></thead>
   <tbody>
   <?php foreach ($channels as $ch): ?>
     <tr>
-      <td><div class="title-cell"><span class="ch-logo"><?php if ($ch['logo']): ?><img src="<?= e(img($ch['logo'])) ?>" alt=""><?php else: ?><?= e(mb_substr($ch['name'], 0, 2)) ?><?php endif; ?></span><div><a href="<?= e(url('admin/canais.php?id=' . $ch['id'])) ?>"><b><?= e($ch['name']) ?></b></a><small class="ellipsis"><?= e($ch['url']) ?></small></div></div></td>
+      <td><div class="title-cell"><span class="ch-logo"><?php if ($ch['logo']): ?><img src="<?= e(img($ch['logo'])) ?>" alt="<?= e(mb_substr($ch['name'], 0, 2)) ?>" onerror="this.parentNode.textContent=this.alt"><?php else: ?><?= e(mb_substr($ch['name'], 0, 2)) ?><?php endif; ?></span><div><a href="<?= e(url('admin/canais.php?id=' . $ch['id'])) ?>"><b><?= e($ch['name']) ?></b></a><small class="ellipsis"><?= e($ch['url']) ?></small></div></div></td>
       <td><?= e($ch['category'] ?: '—') ?></td>
       <td><span class="pill"><?= e(strtoupper($ch['kind'])) ?></span></td>
       <td><?= number_format((int)$ch['views'], 0, ',', '.') ?></td>
