@@ -83,6 +83,7 @@ $noindex = ($genre !== '' || $year > 0 || $sort !== 'recentes');
 require __DIR__ . '/header.php';
 ?>
 <div class="container page">
+  <?= ad_slot('list_top') ?>
   <div class="page-head">
     <h1><?= e($heading) ?> <small><?= $total ?> título<?= $total === 1 ? '' : 's' ?></small></h1>
     <form class="filters" method="get">

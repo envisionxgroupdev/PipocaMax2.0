@@ -20,6 +20,7 @@ $noindex = true;
 require __DIR__ . '/includes/header.php';
 ?>
 <div class="container page">
+  <?= ad_slot('list_top') ?>
   <form class="big-search" action="" method="get">
     <?= icon('search') ?>
     <input type="search" name="q" value="<?= e($term) ?>" placeholder="Busque por filmes, séries, animes ou canais" autofocus>

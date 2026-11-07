@@ -81,8 +81,10 @@ require __DIR__ . '/includes/header.php';
 <?php endif; ?>
 
 <div class="rows">
+  <?= ad_slot('home_top') ?>
   <?= render_row('Lançamentos', $releases, page_url('lancamentos'), 'lancamentos') ?>
   <?= render_row('Em alta no ' . site_name(), $top) ?>
+  <?= ad_slot('home_middle') ?>
   <?= render_row('Filmes', $movies, page_url('filmes'), 'filmes') ?>
   <?= render_row('Séries', $series, page_url('series'), 'series') ?>
   <?= render_row('Animes', $animes, page_url('animes'), 'animes') ?>

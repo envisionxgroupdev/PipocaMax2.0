@@ -166,12 +166,14 @@ require __DIR__ . '/includes/header.php';
           </button>
         <?php endforeach; ?>
       </div>
+      <?= ad_slot('player_above') ?>
       <div class="player" data-player-box>
         <div class="player-cover" style="background-image:url('<?= e(img($c['backdrop'] ?: $c['poster'], 'w1280')) ?>')">
           <button class="big-play" aria-label="Reproduzir"><?= icon('play') ?></button>
           <span class="player-hint">Escolha um player acima e clique para assistir</span>
         </div>
       </div>
+      <?= ad_slot('player_below') ?>
     <?php else: ?>
       <div class="empty small"><p>Nenhum player disponível para este filme ainda. Volte em breve!</p></div>
     <?php endif; ?>
@@ -189,7 +191,9 @@ require __DIR__ . '/includes/header.php';
         </div>
       </div>
       <div class="servers" data-servers></div>
+      <?= ad_slot('player_above') ?>
       <div class="player" data-player-box></div>
+      <?= ad_slot('player_below') ?>
     </div>
 
     <?php if ($seasons): ?>

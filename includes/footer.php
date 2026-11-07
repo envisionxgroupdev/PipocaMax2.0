@@ -1,4 +1,5 @@
 <?php $active = $active ?? ''; ?>
+<?= ad_slot('footer') ?>
 </main>
 <footer class="footer">
   <div class="container">
@@ -24,5 +25,6 @@
 
 <script>window.PM = { base: <?= json_encode(BASE_URL) ?>, csrf: <?= json_encode(csrf_token()) ?>, logged: <?= current_user() ? 'true' : 'false' ?> };</script>
 <script src="<?= e(asset('js/app.js')) ?>" defer></script>
+<?= custom_code('footer') ?>
 </body>
 </html>

@@ -48,8 +48,10 @@ $nav = [
 <link rel="preconnect" href="https://image.tmdb.org">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>">
+<?= custom_code('head') ?>
 </head>
 <body class="<?= e($bodyClass ?? '') ?>">
+<?= custom_code('body') ?>
 <header class="topbar" id="topbar">
   <div class="topbar-inner">
     <?= logo_html() ?>

@@ -408,3 +408,22 @@ input[type=checkbox] { accent-color: var(--red); width: 16px; height: 16px; }
 @media (max-width: 600px) { .type-cards { gap: 8px; } .type-card { padding: 14px 6px 10px; } }
 .cols > * { min-width: 0; }
 .panel { min-width: 0; }
+
+/* Anúncios e códigos */
+.panel-head h2 { display: flex; align-items: center; gap: 8px; }
+.panel-head h2 .ico { color: var(--red); }
+.code-box, .slot { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-bottom: 12px; }
+.slot.on { border-color: rgba(229, 9, 20, .5); }
+.code-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
+.code-head small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.mini-toggle { cursor: pointer; flex: none; display: inline-flex; }
+.mini-toggle input { display: none; }
+.mini-toggle input:checked + .switch-ui { background: var(--red); }
+.mini-toggle input:checked + .switch-ui::after { left: 23px; }
+.code-box textarea, .slot textarea { background: #0b0b0b; color: #9fe0a8; }
+.slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 12px; }
+.slots .slot { margin: 0; }
+.seg.small { margin-top: 8px; grid-template-columns: repeat(3, 1fr); }
+.seg.small span { padding: 6px 4px; font-size: 12.5px; }
+.save-bar { position: sticky; bottom: 0; padding: 12px 0; background: linear-gradient(0deg, var(--bg) 70%, transparent); z-index: 5; }
+@media (max-width: 600px) { .slots { grid-template-columns: 1fr; } }
