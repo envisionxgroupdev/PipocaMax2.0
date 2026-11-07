@@ -92,6 +92,8 @@ function tv_normalize(array $src, array $items): array
     foreach ($items as $it) {
         $url = clean_url((string)($it['url'] ?? ''));
         $name = trim((string)($it['name'] ?? ''));
+        // limpa marcações comuns de listas: "(720p)", "[Not 24/7]", "[Geo-blocked]"
+        $name = trim(preg_replace(['/\s*\(\d{3,4}p\)/i', '/\s*\[[^\]]*\]/'], '', $name)) ?: $name;
         if ($url === '' || $name === '') continue;
         $group = trim((string)($it['group'] ?? ''));
         if ($filter && !in_array(mb_strtolower($group), $filter, true)) continue;
