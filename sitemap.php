@@ -39,7 +39,7 @@ if ($p === 1) {
     foreach (['filmes', 'series', 'animes', 'lancamentos', 'tv'] as $pg) {
         $line(site_url(page_url($pg)));
     }
-    foreach (q_all("SELECT id, name, created_at FROM channels WHERE status = 'active'") as $ch) {
+    foreach (q_all("SELECT id, name, slug, created_at FROM channels WHERE status = 'active'") as $ch) {
         $line(site_url(channel_url($ch)), $ch['created_at']);
     }
 }

@@ -2,8 +2,24 @@
 require __DIR__ . '/includes/bootstrap.php';
 check_maintenance();
 
-$id = in_int('id');
-$ch = q_one("SELECT * FROM channels WHERE id = ? AND (status = 'active' OR ? = 1)", [$id, is_admin() ? 1 : 0]);
+$pub = is_admin() ? 1 : 0;
+$cslug = preg_replace('/[^a-z0-9-]/', '', strtolower(in_str('slug')));
+$ch = null;
+if ($cslug !== '') {
+    $ch = q_one("SELECT * FROM channels WHERE slug = ? AND (status = 'active' OR ? = 1)", [$cslug, $pub]);
+    if (!$ch && preg_match('/^(\d+)(-|$)/', $cslug, $m)) {
+        $old = q_one("SELECT * FROM channels WHERE id = ? AND (status = 'active' OR ? = 1)", [(int)$m[1], $pub]);
+        if ($old && !empty($old['slug'])) { header('Location: ' . channel_url($old), true, 301); exit; }
+        $ch = $old;
+    }
+} elseif (in_int('id')) {
+    $ch = q_one("SELECT * FROM channels WHERE id = ? AND (status = 'active' OR ? = 1)", [in_int('id'), $pub]);
+    if ($ch && pretty_urls() && !empty($ch['slug']) && str_contains($_SERVER['REQUEST_URI'] ?? '', 'canal.php')) {
+        header('Location: ' . channel_url($ch), true, 301);
+        exit;
+    }
+}
+$id = $ch ? (int)$ch['id'] : 0;
 if (!$ch) {
     redirect(page_url('tv'));
 }

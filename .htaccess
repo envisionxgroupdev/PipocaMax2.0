@@ -21,10 +21,10 @@ ServerSignature Off
   RewriteRule ^robots\.txt$ robots.php [L]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^(filme|serie|anime)/([0-9]+)(-[^/]*)?/?$ titulo.php?id=$2 [L,QSA]
+  RewriteRule ^(filme|serie|anime)/([a-z0-9-]+)/?$ titulo.php?tipo=$1&slug=$2 [L,QSA]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^canal/([0-9]+)(-[^/]*)?/?$ canal.php?id=$1 [L,QSA]
+  RewriteRule ^canal/([a-z0-9-]+)/?$ canal.php?slug=$1 [L,QSA]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteRule ^(filmes|series|animes|lancamentos|tv|busca|login|cadastro|conta|minha-lista)/?$ $1.php [L,QSA]

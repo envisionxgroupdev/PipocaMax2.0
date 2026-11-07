@@ -176,8 +176,8 @@ function tv_upsert(string $sid, array $rows, bool $inactive = false): array
                 q('UPDATE channels SET url = ?, kind = ?, logo = COALESCE(?, logo), category = ? WHERE id = ?', [$r['u'], $r['t'], $r['l'] ?: null, $r['g'] ?: null, $ex['id']]);
                 $res['updated']++;
             } else {
-                q('INSERT INTO channels (name, logo, category, url, kind, source, ext_key, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-                    [$r['n'], $r['l'] ?: null, $r['g'] ?: null, $r['u'], $r['t'], $sid, $r['k'], $inactive ? 'inactive' : 'active']);
+                q('INSERT INTO channels (slug, name, logo, category, url, kind, source, ext_key, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [unique_channel_slug($r['n']), $r['n'], $r['l'] ?: null, $r['g'] ?: null, $r['u'], $r['t'], $sid, $r['k'], $inactive ? 'inactive' : 'active']);
                 $res['added']++;
             }
         }

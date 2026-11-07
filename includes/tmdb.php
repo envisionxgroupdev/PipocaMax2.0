@@ -237,7 +237,6 @@ function tmdb_import(int $tmdbId, string $type, bool $withSeasons = true, array 
         'type' => $type,
         'title' => $title,
         'original_title' => $d['original_title'] ?? $d['original_name'] ?? null,
-        'slug' => slugify($title),
         'overview' => $d['overview'] ?? null,
         'poster' => $d['poster_path'] ?? null,
         'backdrop' => $d['backdrop_path'] ?? null,
@@ -254,9 +253,13 @@ function tmdb_import(int $tmdbId, string $type, bool $withSeasons = true, array 
     $existing = q_one('SELECT id FROM contents WHERE tmdb_id = ? AND type = ?', [$tmdbId, $type]);
     if ($existing) {
         $id = (int)$existing['id'];
+        if (!q_val("SELECT 1 FROM contents WHERE id = ? AND slug <> ''", [$id])) {
+            $row['slug'] = unique_slug($title, $type, $row['year'], $id); // só se ainda não tinha
+        }
         $sets = implode(', ', array_map(fn($k) => "`$k` = ?", array_keys($row)));
         q("UPDATE contents SET $sets WHERE id = ?", array_merge(array_values($row), [$id]));
     } else {
+        $row['slug'] = unique_slug($title, $type, $row['year']);
         $row += [
             'is_release' => !empty($extra['is_release']) ? 1 : 0,
             'featured' => !empty($extra['featured']) ? 1 : 0,

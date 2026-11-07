@@ -108,8 +108,10 @@ CREATE TABLE IF NOT EXISTS channels (
   views INT UNSIGNED NOT NULL DEFAULT 0,
   source VARCHAR(40) NULL,
   ext_key VARCHAR(64) NULL,
+  slug VARCHAR(140) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  KEY idx_ch_source (source, ext_key)
+  KEY idx_ch_source (source, ext_key),
+  KEY idx_ch_slug (slug)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS favorites (
@@ -155,4 +157,4 @@ INSERT IGNORE INTO settings (`key`, `value`) VALUES
 ('seo_home_title', ''),
 ('google_verification', ''),
 ('google_analytics', ''),
-('db_version', '4');
+('db_version', '5');

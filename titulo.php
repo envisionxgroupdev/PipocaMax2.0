@@ -2,8 +2,27 @@
 require __DIR__ . '/includes/bootstrap.php';
 check_maintenance();
 
-$id = in_int('id');
-$c = q_one("SELECT * FROM contents WHERE id = ? AND (status = 'published' OR ? = 1)", [$id, is_admin() ? 1 : 0]);
+$slug = preg_replace('/[^a-z0-9-]/', '', strtolower(in_str('slug')));
+$tipoMap = ['filme' => 'movie', 'serie' => 'series', 'anime' => 'anime'];
+$tipo = $tipoMap[in_str('tipo')] ?? null;
+$pub = is_admin() ? 1 : 0;
+$c = null;
+if ($slug !== '' && $tipo) {
+    $c = q_one("SELECT * FROM contents WHERE slug = ? AND type = ? AND (status = 'published' OR ? = 1)", [$slug, $tipo, $pub]);
+    // endereço antigo com número na frente (/filme/123-nome): manda para o novo
+    if (!$c && preg_match('/^(\d+)(-|$)/', $slug, $m)) {
+        $old = q_one("SELECT * FROM contents WHERE id = ? AND (status = 'published' OR ? = 1)", [(int)$m[1], $pub]);
+        if ($old && $old['slug'] !== '') { header('Location: ' . content_url($old), true, 301); exit; }
+        $c = $old;
+    }
+} elseif (in_int('id')) {
+    $c = q_one("SELECT * FROM contents WHERE id = ? AND (status = 'published' OR ? = 1)", [in_int('id'), $pub]);
+    if ($c && pretty_urls() && $c['slug'] !== '' && str_contains($_SERVER['REQUEST_URI'] ?? '', 'titulo.php')) {
+        header('Location: ' . content_url($c), true, 301);
+        exit;
+    }
+}
+$id = $c ? (int)$c['id'] : 0;
 if (!$c) {
     http_response_code(404);
     $pageTitle = 'Não encontrado';

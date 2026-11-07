@@ -148,4 +148,35 @@ if ((int)setting('db_version', '1') < 4) {
     ] as $ix) { try { q($ix); } catch (Throwable $e) {} }
     set_setting('db_version', '4');
 }
+if ((int)setting('db_version', '1') < 5 && (int)setting('mig5_lock', '0') < time() - 120) {
+    set_setting('mig5_lock', (string)time());
+    @set_time_limit(120);
+    try { q('ALTER TABLE channels ADD COLUMN slug VARCHAR(140) NULL'); } catch (Throwable $e) {}
+    try { q('CREATE INDEX idx_ch_slug ON channels (slug)'); } catch (Throwable $e) {}
+    // endereços sem número: os mais vistos ficam com o nome "limpo"
+    $used = [];
+    $pdo = db();
+    $pdo->beginTransaction();
+    foreach (q_all('SELECT id, type, title, year FROM contents ORDER BY views DESC, id ASC') as $r) {
+        $base = slugify($r['title']);
+        $s = $base;
+        if (isset($used[$r['type']][$s]) && $r['year']) $s = $base . '-' . (int)$r['year'];
+        $n = 2;
+        $root = $s;
+        while (isset($used[$r['type']][$s])) $s = $root . '-' . $n++;
+        $used[$r['type']][$s] = true;
+        q('UPDATE contents SET slug = ? WHERE id = ?', [$s, $r['id']]);
+    }
+    $usedCh = [];
+    foreach (q_all('SELECT id, name FROM channels ORDER BY views DESC, id ASC') as $r) {
+        $base = slugify($r['name']);
+        $s = $base; $n = 2;
+        while (isset($usedCh[$s])) $s = $base . '-' . $n++;
+        $usedCh[$s] = true;
+        q('UPDATE channels SET slug = ? WHERE id = ?', [$s, $r['id']]);
+    }
+    $pdo->commit();
+    set_setting('db_version', '5');
+    if (function_exists('cache_bump')) cache_bump();
+}
 refresh_current_user();

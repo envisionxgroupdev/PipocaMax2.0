@@ -69,8 +69,9 @@ if (is_post()) {
         $data = [$name, clean_url(in_str('logo'), true) ?: null, mb_substr(in_str('category'), 0, 80) ?: null, $u, $kind, in_str('status') === 'inactive' ? 'inactive' : 'active', in_int('sort')];
         if ($id) {
             q('UPDATE channels SET name = ?, logo = ?, category = ?, url = ?, kind = ?, status = ?, sort = ? WHERE id = ?', array_merge($data, [$id]));
+            if (!q_val("SELECT 1 FROM channels WHERE id = ? AND slug IS NOT NULL AND slug <> ''", [$id])) q('UPDATE channels SET slug = ? WHERE id = ?', [unique_channel_slug($name, $id), $id]);
         } else {
-            q('INSERT INTO channels (name, logo, category, url, kind, status, sort) VALUES (?, ?, ?, ?, ?, ?, ?)', $data);
+            q('INSERT INTO channels (name, logo, category, url, kind, status, sort, slug) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', array_merge($data, [unique_channel_slug($name)]));
         }
         flash('success', 'Canal salvo.');
     } elseif ($action === 'delete') {
@@ -90,8 +91,8 @@ if (is_post()) {
                 if (preg_match('/tvg-logo="([^"]*)"/', $line, $m)) $meta['logo'] = $m[1];
                 if (preg_match('/group-title="([^"]*)"/', $line, $m)) $meta['group'] = $m[1];
             } elseif ($line !== '' && $line[0] !== '#' && $meta && clean_url($line) !== '') {
-                q('INSERT INTO channels (name, logo, category, url, kind) VALUES (?, ?, ?, ?, ?)',
-                    [mb_substr($meta['name'] ?: 'Canal', 0, 120), clean_url((string)$meta['logo'], true) ?: null, $meta['group'] ? mb_substr($meta['group'], 0, 80) : null, $line, player_kind_from_url($line) === 'embed' ? 'hls' : player_kind_from_url($line)]);
+                q('INSERT INTO channels (slug, name, logo, category, url, kind) VALUES (?, ?, ?, ?, ?, ?)',
+                    [unique_channel_slug($meta['name'] ?: 'canal'), mb_substr($meta['name'] ?: 'Canal', 0, 120), clean_url((string)$meta['logo'], true) ?: null, $meta['group'] ? mb_substr($meta['group'], 0, 80) : null, $line, player_kind_from_url($line) === 'embed' ? 'hls' : player_kind_from_url($line)]);
                 $n++;
                 $meta = null;
             }

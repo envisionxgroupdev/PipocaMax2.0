@@ -435,3 +435,6 @@ input[type=checkbox] { accent-color: var(--red); width: 16px; height: 16px; }
 .tv-src-info .tv-err { color: #e3b341; }
 .tv-src-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .check.small { font-size: 12px; color: var(--muted); }
+.input-prefix { display: flex; align-items: stretch; border: 1px solid #333; border-radius: 6px; overflow: hidden; background: #0f0f0f; }
+.input-prefix em { font-style: normal; color: var(--muted); padding: 0 4px 0 12px; display: flex; align-items: center; font-size: 13px; white-space: nowrap; max-width: 55%; overflow: hidden; text-overflow: ellipsis; }
+.input-prefix input { border: 0 !important; flex: 1; min-width: 0; padding-left: 0 !important; }

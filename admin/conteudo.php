@@ -33,7 +33,6 @@ if (is_post()) {
                     'type' => $type,
                     'title' => mb_substr($title, 0, 255),
                     'original_title' => in_str('original_title') ?: null,
-                    'slug' => slugify($title),
                     'tmdb_id' => in_int('tmdb_id') ?: null,
                     'imdb_id' => in_str('imdb_id') ?: null,
                     'overview' => in_str('overview') ?: null,
@@ -51,6 +50,8 @@ if (is_post()) {
                     'featured' => isset($_POST['featured']) ? 1 : 0,
                     'status' => in_str('status') === 'draft' ? 'draft' : 'published',
                 ];
+                $wantSlug = slugify(in_str('slug') !== '' ? in_str('slug') : (($c['slug'] ?? '') ?: $title));
+                $data['slug'] = unique_slug($wantSlug, $type, null, $c ? (int)$id : 0);
                 if ($c) {
                     $sets = implode(', ', array_map(fn($k) => "`$k` = ?", array_keys($data)));
                     q("UPDATE contents SET $sets WHERE id = ?", array_merge(array_values($data), [$id]));
@@ -168,7 +169,7 @@ if (is_post()) {
 // ---------- Exibição ----------
 $isNew = !$c;
 $type = $c['type'] ?? (in_array($novo, ['movie', 'series', 'anime'], true) ? $novo : 'movie');
-$c = $c ?? ['title' => '', 'original_title' => '', 'tmdb_id' => '', 'imdb_id' => '', 'overview' => '', 'poster' => '', 'backdrop' => '', 'logo' => '',
+$c = $c ?? ['slug' => '', 'title' => '', 'original_title' => '', 'tmdb_id' => '', 'imdb_id' => '', 'overview' => '', 'poster' => '', 'backdrop' => '', 'logo' => '',
     'year' => '', 'release_date' => '', 'rating' => '', 'runtime' => '', 'genres' => '', 'age_rating' => '', 'trailer' => '',
     'is_release' => 0, 'featured' => 0, 'status' => 'published', 'type' => $type];
 
@@ -350,6 +351,7 @@ admin_header($isNew ? 'Novo ' . mb_strtolower(type_label($type)) : $c['title'], 
     <label class="field"><span>Tipo</span>
       <select name="type"><?php foreach (['movie', 'series', 'anime'] as $t): ?><option value="<?= $t ?>" <?= $type === $t ? 'selected' : '' ?>><?= e(type_label($t)) ?></option><?php endforeach; ?></select>
     </label>
+    <label class="field span-3"><span>Endereço da página</span><span class="input-prefix"><em><?= e(site_url(url(['movie' => 'filme', 'series' => 'serie', 'anime' => 'anime'][$type] . '/'))) ?></em><input name="slug" value="<?= e($c['slug'] ?? '') ?>" placeholder="(automático pelo título)" pattern="[a-z0-9\-]*"></span></label>
     <label class="field"><span>Título original</span><input name="original_title" value="<?= e($c['original_title']) ?>"></label>
     <label class="field"><span>ID do TMDB</span><span class="input-btn"><input name="tmdb_id" value="<?= e($c['tmdb_id']) ?>" placeholder="ID ou link do TMDB"><?php if (tmdb_configured()): ?><button class="btn btn-red btn-sm" name="action" value="fetch_tmdb" formnovalidate data-loading="Puxando dados do TMDB…" title="Preenche tudo automaticamente"><?= icon('download') ?> Puxar dados</button><?php endif; ?></span></label>
     <label class="field"><span>ID do IMDb</span><input name="imdb_id" value="<?= e($c['imdb_id']) ?>" placeholder="tt1234567"></label>

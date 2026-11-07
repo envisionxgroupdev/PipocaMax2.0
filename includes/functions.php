@@ -155,6 +155,32 @@ function pretty_urls(): bool
     return setting('pretty_urls', '1') === '1';
 }
 
+/** Endereço único por tipo: "coringa"; se já existir, "coringa-2019"; depois "coringa-2019-2"… */
+function unique_slug(string $title, string $type, $year = null, int $excludeId = 0): string
+{
+    $base = slugify($title);
+    $tries = [$base];
+    if ($year) $tries[] = $base . '-' . (int)$year;
+    foreach ($tries as $t) {
+        if (!q_val('SELECT 1 FROM contents WHERE slug = ? AND type = ? AND id <> ?', [$t, $type, $excludeId])) return $t;
+    }
+    $root = end($tries);
+    for ($i = 2; $i < 500; $i++) {
+        if (!q_val('SELECT 1 FROM contents WHERE slug = ? AND type = ? AND id <> ?', [$root . '-' . $i, $type, $excludeId])) return $root . '-' . $i;
+    }
+    return $root . '-' . substr(md5(uniqid('', true)), 0, 5);
+}
+
+function unique_channel_slug(string $name, int $excludeId = 0): string
+{
+    $base = slugify($name);
+    if (!q_val('SELECT 1 FROM channels WHERE slug = ? AND id <> ?', [$base, $excludeId])) return $base;
+    for ($i = 2; $i < 1000; $i++) {
+        if (!q_val('SELECT 1 FROM channels WHERE slug = ? AND id <> ?', [$base . '-' . $i, $excludeId])) return $base . '-' . $i;
+    }
+    return $base . '-' . substr(md5(uniqid('', true)), 0, 5);
+}
+
 /** Endereço completo do site (https://seusite.com) */
 function site_url(string $path = ''): string
 {
@@ -168,17 +194,17 @@ function site_url(string $path = ''): string
 function content_url(array $c): string
 {
     $slug = preg_replace('/[^a-z0-9-]/', '', (string)($c['slug'] ?? ''));
-    if (pretty_urls()) {
+    if (pretty_urls() && $slug !== '') {
         $prefix = ['movie' => 'filme', 'series' => 'serie', 'anime' => 'anime'][$c['type'] ?? 'movie'] ?? 'filme';
-        return url($prefix . '/' . (int)$c['id'] . ($slug !== '' ? '-' . $slug : ''));
+        return url($prefix . '/' . $slug);
     }
     return url('titulo.php?id=' . (int)$c['id'] . ($slug !== '' ? '&t=' . $slug : ''));
 }
 
 function channel_url(array $ch): string
 {
-    if (pretty_urls()) {
-        return url('canal/' . (int)$ch['id'] . '-' . slugify((string)$ch['name']));
+    if (pretty_urls() && !empty($ch['slug'])) {
+        return url('canal/' . $ch['slug']);
     }
     return url('canal.php?id=' . (int)$ch['id']);
 }
