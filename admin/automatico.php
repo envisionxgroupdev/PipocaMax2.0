@@ -69,9 +69,7 @@ admin_header('Importação automática', 'auto');
     <small><?= $enabled ? "Até $perRun título(s) a cada $interval min • cerca de " . number_format($perRun * $runsPerDay, 0, ',', '.') . ' por dia, até acabar o que é novo' : 'Ligue abaixo para o site começar a publicar sozinho.' ?>
       <?= $last ? ' • Última vez: ' . e(time_ago(date('Y-m-d H:i:s', $last))) : '' ?></small>
   </div>
-  <form method="post" class="inline"><?= csrf_field() ?><input type="hidden" name="action" value="run">
-    <button class="btn btn-red" data-loading="Importando agora… (pode levar até 1 minuto)" <?= tmdb_configured() ? '' : 'disabled' ?>><?= icon('download') ?> Rodar agora</button>
-  </form>
+  <button type="button" class="btn btn-red" id="auto-run" data-per="<?= $perRun ?>" <?= tmdb_configured() ? '' : 'disabled' ?>><?= icon('download') ?> Rodar agora</button>
 </div>
 
 <div class="cols">
@@ -155,5 +153,22 @@ admin_header('Importação automática', 'auto');
   <form method="post" class="inline" data-confirm="Recomeçar todas as listas da primeira página?"><?= csrf_field() ?><input type="hidden" name="action" value="restart"><button class="link-danger" style="color:var(--muted)">Recomeçar listas do início</button></form>
 </section>
 </div>
+</div>
+<div class="modal-q" id="queue" hidden>
+  <div class="queue-box">
+    <div class="queue-head"><h2 id="q-title">Rodando a importação…</h2><span class="muted" id="q-status"></span></div>
+    <div class="progress"><span id="q-bar"></span></div>
+    <div class="queue-stats">
+      <span><b id="q-ok">0</b> importados</span>
+      <span><b id="q-skip">0</b> séries atualizadas</span>
+      <span class="err"><b id="q-err">0</b> com erro</span>
+    </div>
+    <ul class="queue-log" id="q-log"></ul>
+    <div class="btn-row">
+      <button class="btn" id="q-stop">Parar</button>
+      <button class="btn btn-red" id="q-close" hidden>Fechar</button>
+    </div>
+    <p class="muted small">Importa um título por vez para não sobrecarregar a hospedagem. Pode deixar aberto.</p>
+  </div>
 </div>
 <?php admin_footer(); ?>

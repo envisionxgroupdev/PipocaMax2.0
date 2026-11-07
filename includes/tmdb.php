@@ -267,11 +267,24 @@ function tmdb_import(int $tmdbId, string $type, bool $withSeasons = true, array 
     }
 
     if ($kind === 'tv' && $withSeasons) {
+        $nums = [];
         foreach ($d['seasons'] ?? [] as $s) {
             if ((int)$s['season_number'] === 0 && empty($extra['include_specials'])) {
                 continue; // pula "Especiais"
             }
-            tmdb_import_season($id, $tmdbId, (int)$s['season_number']);
+            $nums[] = (int)$s['season_number'];
+        }
+        // Busca até 20 temporadas por pedido ao TMDB (muito mais rápido em séries longas)
+        foreach (array_chunk($nums, 20) as $chunk) {
+            $batch = tmdb_request("tv/$tmdbId", ['append_to_response' => implode(',', array_map(fn($n) => "season/$n", $chunk))]);
+            foreach ($chunk as $n) {
+                $sd = $batch["season/$n"] ?? null;
+                if (is_array($sd)) {
+                    tmdb_save_season($id, $n, $sd);
+                } else {
+                    tmdb_import_season($id, $tmdbId, $n);
+                }
+            }
         }
     }
     return $id;
@@ -280,7 +293,16 @@ function tmdb_import(int $tmdbId, string $type, bool $withSeasons = true, array 
 /** Importa uma temporada com todos os episódios */
 function tmdb_import_season(int $contentId, int $tmdbId, int $seasonNumber): int
 {
-    $s = tmdb_request("tv/$tmdbId/season/$seasonNumber");
+    return tmdb_save_season($contentId, $seasonNumber, tmdb_request("tv/$tmdbId/season/$seasonNumber"));
+}
+
+/** Grava uma temporada (dados já baixados do TMDB) numa única transação */
+function tmdb_save_season(int $contentId, int $seasonNumber, array $s): int
+{
+    $pdo = db();
+    $own = !$pdo->inTransaction();
+    if ($own) $pdo->beginTransaction();
+    try {
     q(
         'INSERT INTO seasons (content_id, season_number, name, overview, poster) VALUES (?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE name = VALUES(name), overview = VALUES(overview), poster = VALUES(poster)',
@@ -306,6 +328,11 @@ function tmdb_import_season(int $contentId, int $tmdbId, int $seasonNumber): int
                 array_merge($vals, [$seasonId, $contentId, $num])
             );
         }
+    }
+    if ($own) $pdo->commit();
+    } catch (Throwable $e) {
+        if ($own && $pdo->inTransaction()) $pdo->rollBack();
+        throw $e;
     }
     return $seasonId;
 }

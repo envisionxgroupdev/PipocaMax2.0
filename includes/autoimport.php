@@ -36,7 +36,7 @@ function auto_log(string $msg, string $type = 'info'): void
  * Roda um lote. $limit = quantos títulos novos no máximo; $maxSeconds = tempo máximo.
  * Retorna resumo ['imported' => n, 'updated' => n, 'skipped' => n, 'errors' => n].
  */
-function run_autoimport(?int $limit = null, int $maxSeconds = 50, bool $force = false): array
+function run_autoimport(?int $limit = null, int $maxSeconds = 50, bool $force = false, int $seriesLimit = 3): array
 {
     $sum = ['imported' => 0, 'updated' => 0, 'skipped' => 0, 'errors' => 0, 'titles' => []];
     if (!tmdb_configured()) {
@@ -130,7 +130,7 @@ function run_autoimport(?int $limit = null, int $maxSeconds = 50, bool $force = 
         // 2) Atualiza séries/animes que ainda estão no ar (episódios novos)
         if (setting('auto_update_series', '1') === '1' && time() - $start < $maxSeconds) {
             $series = q_all("SELECT id, tmdb_id, type, title FROM contents WHERE type <> 'movie' AND tmdb_id IS NOT NULL
-                             AND updated_at < (NOW() - INTERVAL 1 DAY) ORDER BY updated_at ASC LIMIT 3");
+                             AND updated_at < (NOW() - INTERVAL 1 DAY) ORDER BY updated_at ASC LIMIT " . max(0, $seriesLimit));
             foreach ($series as $s) {
                 if (time() - $start >= $maxSeconds) break;
                 try {
@@ -159,6 +159,9 @@ function run_autoimport(?int $limit = null, int $maxSeconds = 50, bool $force = 
         set_setting('auto_last_run', (string)time());
     }
 
+    if (!empty($GLOBALS['PM_AUTO_QUIET'])) {
+        return $sum;
+    }
     if ($sum['imported'] || $sum['updated']) {
         auto_log($sum['imported'] . ' título(s) novo(s)' . ($sum['titles'] ? ': ' . implode(', ', array_slice($sum['titles'], 0, 8)) . (count($sum['titles']) > 8 ? '…' : '') : '') . ($sum['updated'] ? ' • ' . $sum['updated'] . ' série(s) com episódios novos' : ''), 'ok');
     } elseif (!$sum['errors']) {
@@ -199,6 +202,6 @@ function auto_maybe_run_on_visit(): void
         if (function_exists('litespeed_finish_request')) litespeed_finish_request();
         else fastcgi_finish_request();
         ignore_user_abort(true);
-        run_autoimport(min(5, (int)setting('auto_per_run', '10')), 25);
+        run_autoimport(2, 15, false, 1);
     });
 }

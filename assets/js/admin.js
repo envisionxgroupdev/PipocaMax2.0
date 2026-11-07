@@ -348,3 +348,58 @@ document.querySelectorAll('[data-copy]').forEach(function (b) {
     else prompt('Copie:', t);
   });
 });
+
+/* ===== "Rodar agora" da importação automática (um título por vez) ===== */
+(function () {
+  var btn = document.getElementById('auto-run');
+  if (!btn) return;
+  var PMA = window.PM || {};
+  var post = function (action, data) {
+    var fd = new FormData();
+    fd.append('_csrf', PMA.csrf);
+    var qs = Object.keys(data).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(data[k]); }).join('&');
+    fd.append('_p', btoa(unescape(encodeURIComponent(qs))).split('').reverse().join(''));
+    return fetch(PMA.base + '/admin/ajax.php?action=' + action, { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); });
+  };
+  var el = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+  btn.addEventListener('click', function () {
+    var target = Math.max(1, +btn.dataset.per || 10), done = 0, upd = 0, err = 0, steps = 0, stop = false, fails = 0, titles = [];
+    el('queue').hidden = false; el('q-log').innerHTML = ''; el('q-close').hidden = true; el('q-stop').hidden = false; el('q-stop').disabled = false;
+    el('q-title').textContent = 'Rodando a importação…';
+    var log = function (cls, html) { var li = document.createElement('li'); li.className = cls; li.innerHTML = html; el('q-log').insertBefore(li, el('q-log').firstChild); };
+    var paint = function () {
+      el('q-ok').textContent = done; el('q-skip').textContent = upd; el('q-err').textContent = err;
+      el('q-bar').style.width = Math.min(100, Math.round(done / target * 100)) + '%';
+      el('q-status').textContent = done + ' de ' + target;
+    };
+    var finish = function (msg) {
+      el('q-title').textContent = msg; el('q-stop').hidden = true; el('q-close').hidden = false; el('q-bar').style.width = '100%';
+      if (done || upd) post('auto_log', { msg: done + ' título(s) novo(s) (rodado manualmente)' + (titles.length ? ': ' + titles.slice(0, 8).join(', ') + (titles.length > 8 ? '…' : '') : '') + (upd ? ' • ' + upd + ' série(s) com episódios novos' : ''), type: 'ok' });
+    };
+    el('q-stop').onclick = function () { stop = true; el('q-stop').disabled = true; };
+    el('q-close').onclick = function () { location.reload(); };
+    var step = function () {
+      if (stop) return finish('Importação interrompida');
+      if (done >= target) return finish('Importação concluída!');
+      steps++;
+      // na primeira passada também confere 1 série com episódios novos
+      post('auto_step', { series: steps === 1 ? 1 : 0 }).then(function (j) {
+        fails = 0;
+        if (j.error) { err++; log('err', '✕ ' + esc(j.error)); }
+        (j.titles || []).forEach(function (t) { titles.push(t); log('ok', '✓ <b>' + esc(t) + '</b>'); });
+        done += j.imported || 0; upd += j.updated || 0; err += j.errors || 0;
+        if (j.updated) log('ok', '✓ ' + j.updated + ' série(s) ganharam episódios novos');
+        paint();
+        if (!j.imported && !j.errors) return finish(done ? 'Importação concluída! Não há mais títulos novos agora.' : 'Nada novo para importar agora.');
+        setTimeout(step, 400);
+      }).catch(function () {
+        fails++; err++; paint();
+        log('err', '✕ A hospedagem demorou para responder' + (fails < 3 ? ', tentando de novo…' : '.'));
+        if (fails >= 3) return finish('Parou: a hospedagem não respondeu 3 vezes seguidas');
+        setTimeout(step, 3000);
+      });
+    };
+    paint(); step();
+  });
+})();

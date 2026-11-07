@@ -11,6 +11,21 @@ try {
             // Teste de diagnóstico: só confirma que o envio chegou
             json_out(['ok' => true, 'method' => $_SERVER['REQUEST_METHOD'] ?? '', 'bytes' => strlen((string)file_get_contents('php://input')), 'php' => PHP_VERSION]);
 
+        case 'auto_step':
+            // "Rodar agora": importa 1 título por pedido (não estoura o tempo da hospedagem)
+            if (!is_post()) json_out(['error' => 'Método inválido'], 405);
+            csrf_check();
+            $GLOBALS['PM_AUTO_QUIET'] = true;
+            $r = run_autoimport(1, 20, true, in_int('series', 0));
+            json_out(['ok' => true] + $r);
+
+        case 'auto_log':
+            if (!is_post()) json_out(['error' => 'Método inválido'], 405);
+            csrf_check();
+            $msg = mb_substr(in_str('msg'), 0, 900);
+            if ($msg !== '') auto_log($msg, in_str('type') === 'error' ? 'error' : 'ok');
+            json_out(['ok' => true]);
+
         case 'search':
             $q = in_str('q');
             $kind = in_str('kind') === 'tv' ? 'tv' : 'movie';
