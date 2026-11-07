@@ -30,6 +30,8 @@ try {
             csrf_check();
             $src = tv_find_source(in_str('sid'));
             if (!$src) json_out(['ok' => false, 'error' => 'Lista não encontrada.']);
+            @ini_set('memory_limit', '512M');
+            @set_time_limit(60);
             try {
                 $rows = tv_normalize($src, tv_parse(tv_http_get($src['url'])));
             } catch (Throwable $e) {

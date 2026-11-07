@@ -26,13 +26,13 @@ function tv_http_get(string $url): string
         CURLOPT_TIMEOUT => 25, CURLOPT_CONNECTTIMEOUT => 8, CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
         CURLOPT_ENCODING => '', CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; PipocaMax)',
         CURLOPT_NOPROGRESS => false,
-        CURLOPT_PROGRESSFUNCTION => fn($c, $dt, $d) => $d > 40 * 1024 * 1024 ? 1 : 0, // máx. 40 MB
+        CURLOPT_PROGRESSFUNCTION => fn($c, $dt, $d) => $d > 25 * 1024 * 1024 ? 1 : 0, // máx. 25 MB
     ]);
     $body = curl_exec($ch);
     $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $err = curl_error($ch);
     curl_close($ch);
-    if ($body === false) throw new RuntimeException(str_contains($err, 'aborted') ? 'A lista é grande demais (mais de 40 MB).' : 'Não consegui baixar a lista: ' . $err);
+    if ($body === false) throw new RuntimeException(str_contains($err, 'aborted') ? 'A lista é grande demais (mais de 25 MB) para a hospedagem processar.' : 'Não consegui baixar a lista: ' . $err);
     if ($code >= 400) throw new RuntimeException('O link da lista respondeu com erro ' . $code . '.');
     return (string)$body;
 }
