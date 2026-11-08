@@ -39,7 +39,7 @@ if ($results) {
         $existing[$r['tmdb_id'] . '-' . ($r['type'] === 'movie' ? 'movie' : 'tv')] = $r['id'];
     }
 }
-$qs = http_build_query(array_filter(['q' => $q, 'kind' => $q ? $kind : null, 'lista' => $q ? null : $list]));
+$qs = http_build_query(array_filter(['aba' => 'buscar', 'q' => $q, 'kind' => $q ? $kind : null, 'lista' => $q ? null : $list]));
 $self = url('admin/importar.php') . ($qs ? '?' . $qs : '');
 
 admin_header('Importar do TMDB', 'importar');
@@ -124,6 +124,7 @@ admin_header('Importar do TMDB', 'importar');
 
 <?php else: ?>
 <form class="filterbar big" method="get">
+  <input type="hidden" name="aba" value="buscar">
   <select name="kind">
     <option value="movie" <?= $kind === 'movie' ? 'selected' : '' ?>>Filmes</option>
     <option value="tv" <?= $kind === 'tv' ? 'selected' : '' ?>>Séries / Animes</option>
@@ -134,7 +135,7 @@ admin_header('Importar do TMDB', 'importar');
 
 <div class="tabs mb">
   <?php foreach ($lists as $k => [$l]): ?>
-    <a class="<?= !$q && $list === $k ? 'active' : '' ?>" href="<?= e(url('admin/importar.php?lista=' . $k)) ?>"><?= e($l) ?></a>
+    <a class="<?= !$q && $list === $k ? 'active' : '' ?>" href="<?= e(url('admin/importar.php?aba=buscar&lista=' . $k)) ?>"><?= e($l) ?></a>
   <?php endforeach; ?>
 </div>
 
