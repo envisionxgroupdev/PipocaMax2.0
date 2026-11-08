@@ -23,17 +23,12 @@ $bodyClass = 'has-hero';
 $canonical = site_url();
 $metaImage = $hero ? abs_img($hero[0]['backdrop'], 'w1280') : null;
 $preloadHero = $hero ? $hero[0]['backdrop'] : null;
-$jsonLd = [[
-    '@context' => 'https://schema.org',
-    '@type' => 'WebSite',
-    'name' => site_name(),
-    'url' => site_url(),
-    'potentialAction' => [
-        '@type' => 'SearchAction',
-        'target' => site_url(page_url('busca')) . '?q={search_term_string}',
-        'query-input' => 'required name=search_term_string',
-    ],
-]];
+$homeList = $releases ?: ($movies ?: $series);
+$jsonLd = [
+    schema_page('WebPage', site_url(), site_name() . ' — ' . (setting('site_description') ?: 'Filmes, séries, animes e TV online'), setting('site_description') ?: null,
+        $homeList ? ['@id' => site_url() . '#destaques'] : null),
+    $homeList ? ['@id' => site_url() . '#destaques'] + schema_item_list(array_slice($homeList, 0, 20), 'Lançamentos') : null,
+];
 require __DIR__ . '/includes/header.php';
 ?>
 

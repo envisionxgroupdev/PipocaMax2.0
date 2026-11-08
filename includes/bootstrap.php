@@ -108,8 +108,8 @@ require_once __DIR__ . '/tmdb.php';
 require_once __DIR__ . '/autoimport.php';
 require_once __DIR__ . '/ads.php';
 require_once __DIR__ . '/tvimport.php';
-require_once __DIR__ . '/mixdrop.php';
 require_once __DIR__ . '/notifications.php';
+require_once __DIR__ . '/schema.php';
 
 try {
     db();
@@ -182,23 +182,6 @@ if ((int)setting('db_version', '1') < 5 && (int)setting('mig5_lock', '0') < time
     if (function_exists('cache_bump')) cache_bump();
 }
 if ((int)setting('db_version', '1') < 6) {
-    q("CREATE TABLE IF NOT EXISTS mixdrop_jobs (
-        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        content_id INT UNSIGNED NULL,
-        episode_id INT UNSIGNED NULL,
-        source_url TEXT NOT NULL,
-        remote_id VARCHAR(40) NOT NULL DEFAULT '',
-        fileref VARCHAR(40) NOT NULL DEFAULT '',
-        embed_url VARCHAR(255) NULL,
-        status VARCHAR(20) NOT NULL DEFAULT 'queued',
-        progress SMALLINT NOT NULL DEFAULT 0,
-        audio VARCHAR(30) NULL,
-        error VARCHAR(255) NULL,
-        player_id INT UNSIGNED NULL,
-        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        KEY idx_status (status)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     set_setting('db_version', '6');
 }
 if ((int)setting('db_version', '1') < 7) {
@@ -217,5 +200,11 @@ if ((int)setting('db_version', '1') < 7) {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     try { q('ALTER TABLE users ADD COLUMN notif_seen INT UNSIGNED NOT NULL DEFAULT 0'); } catch (Throwable $e) { /* já existe */ }
     set_setting('db_version', '7');
+}
+if ((int)setting('db_version', '1') < 8) {
+    // MixDrop removido: apaga a fila e os dados da conta
+    q('DROP TABLE IF EXISTS mixdrop_jobs');
+    q("DELETE FROM settings WHERE `key` LIKE 'mixdrop\\_%'");
+    set_setting('db_version', '8');
 }
 refresh_current_user();

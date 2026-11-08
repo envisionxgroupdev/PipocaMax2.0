@@ -70,24 +70,6 @@ if (is_post()) {
                 flash('success', 'Dados atualizados do TMDB' . ($c['type'] === 'movie' ? '.' : ' (novas temporadas e episódios incluídos).'));
                 break;
 
-            case 'md_send':
-                mixdrop_send(in_str('md_url'), $id, null, in_str('md_audio'));
-                flash('success', 'Vídeo enviado para o MixDrop. O player aparece sozinho quando ficar pronto (acompanhe aqui ou em MixDrop).');
-                break;
-
-            case 'md_bulk':
-                if (!mixdrop_configured()) throw new RuntimeException('Configure sua conta do MixDrop primeiro.');
-                $items = mixdrop_parse_series_lines((string)($_POST['md_lines'] ?? ''), in_int('md_season', 1), in_int('md_episode', 1));
-                if (!$items) throw new RuntimeException('Cole pelo menos um link (um por linha).');
-                $ok = 0; $miss = [];
-                foreach ($items as $it) {
-                    $eid = (int)q_val('SELECT e.id FROM episodes e JOIN seasons s ON s.id = e.season_id WHERE e.content_id = ? AND s.season_number = ? AND e.episode_number = ?', [$id, $it['season'], $it['episode']]);
-                    if (!$eid) { $miss[] = 'T' . $it['season'] . 'E' . $it['episode']; continue; }
-                    if (mixdrop_enqueue($it['url'], $id, $eid, in_str('md_audio'))) $ok++;
-                }
-                flash($ok ? 'success' : 'error', "$ok vídeo(s) na fila para o MixDrop." . ($miss ? ' Episódios que não existem no site (pulados): ' . implode(', ', array_slice($miss, 0, 10)) . (count($miss) > 10 ? '…' : '') . '.' : ''));
-                break;
-
             case 'fetch_tmdb':
                 // Puxa (ou atualiza) os dados do TMDB pelo ID informado
                 $tid = in_int('tmdb_id');
@@ -237,7 +219,6 @@ admin_header($isNew ? 'Novo ' . mb_strtolower(type_label($type)) : $c['title'], 
       <p class="muted small"><?= api_has_movie_players() ? 'Este título não tem ID do TMDB/IMDb, por isso a API não consegue montar o link.' : 'Configure o link da sua API em <a href="' . e(url('admin/configuracoes.php#players')) . '">Configurações › API de players</a> e todos os filmes ganham player automaticamente.' ?></p>
     <?php endif; ?>
   </div>
-  <?php mixdrop_box('content', $id, 'players'); ?>
   <h3 class="sub-title">Players extras (opcional)</h3>
   <p class="muted small">Adicione aqui outros servidores só para este filme. Aceita link de embed (iframe), vídeo .mp4 ou transmissão .m3u8.</p>
   <?php players_editor($players, 'content_id', $id, $self . '#players'); ?>
@@ -265,28 +246,6 @@ admin_header($isNew ? 'Novo ' . mb_strtolower(type_label($type)) : $c['title'], 
       <p class="muted small">Este título não tem ID do TMDB/IMDb, por isso a API não consegue montar o link.</p>
     <?php endif; ?>
   </div>
-
-  <?php $mdPend = (int)q_val("SELECT COUNT(*) FROM mixdrop_jobs WHERE content_id = ? AND episode_id IS NOT NULL AND status IN ('tosend','queued','downloading','converting')", [$id]); ?>
-  <details class="box-details" id="mixdrop-massa" data-md-pending="<?= $mdPend ?>" <?= $mdPend ? 'open' : '' ?>>
-    <summary><?= icon('external') ?> Enviar episódios para o MixDrop (em massa)<?= $mdPend ? ' <span class="pill pill-warn">' . $mdPend . ' em andamento</span>' : '' ?></summary>
-    <?php if (!mixdrop_configured()): ?>
-      <p class="muted small" style="padding:12px 16px">Configure sua conta em <a href="<?= e(url('admin/mixdrop.php')) ?>">MixDrop</a> primeiro.</p>
-    <?php else: ?>
-    <form method="post" class="bulk-form">
-      <?= csrf_field() ?><input type="hidden" name="action" value="md_bulk"><input type="hidden" name="anchor" value="temporadas">
-      <p class="muted small">Um link por linha. Pode marcar o episódio na frente (<code>S01E03 https://…</code>, <code>1x03 https://…</code> ou <code>T1E3 https://…</code>) ou colar só os links em ordem, a partir do episódio escolhido abaixo.</p>
-      <textarea name="md_lines" rows="6" placeholder="https://…/episodio1.mp4&#10;https://…/episodio2.mp4&#10;S02E01 https://…/t2e1.mp4"></textarea>
-      <div class="form-row">
-        <span class="muted small">Começar em</span>
-        <select name="md_season"><?php foreach ($seasons as $s): ?><option value="<?= (int)$s['season_number'] ?>">Temporada <?= (int)$s['season_number'] ?></option><?php endforeach; ?></select>
-        <span class="muted small">episódio</span><input type="number" name="md_episode" value="1" min="1" class="w-num">
-        <input name="md_audio" value="<?= e(setting('mixdrop_audio')) ?>" placeholder="Áudio" list="audios" style="width:130px">
-        <button class="btn btn-red"><?= icon('download') ?> Enviar para o MixDrop</button>
-      </div>
-      <p class="muted small"><a href="<?= e(url('admin/mixdrop.php')) ?>">Acompanhar os envios ›</a></p>
-    </form>
-    <?php endif; ?>
-  </details>
 
   <details class="box-details" id="massa">
     <summary><?= icon('wrench') ?> Adicionar servidores extras em massa (opcional)</summary>

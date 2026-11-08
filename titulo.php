@@ -88,32 +88,13 @@ $metaImage = abs_img($c['backdrop'] ?: $c['poster'], 'w1280');
 $ogType = $isMovie ? 'video.movie' : 'video.tv_show';
 $preloadHero = $c['backdrop'] ?: $c['poster'];
 $noindex = $c['status'] !== 'published';
-$ld = array_filter([
-    '@context' => 'https://schema.org',
-    '@type' => $isMovie ? 'Movie' : 'TVSeries',
-    'name' => $c['title'],
-    'alternateName' => $c['original_title'] && $c['original_title'] !== $c['title'] ? $c['original_title'] : null,
-    'url' => $canonical,
-    'description' => $c['overview'] ?: null,
-    'image' => abs_img($c['poster'], 'w500'),
-    'datePublished' => $c['release_date'] ?: ($c['year'] ? (string)$c['year'] : null),
-    'genre' => $c['genres'] ? array_map('trim', explode(',', $c['genres'])) : null,
-    'duration' => $isMovie && $c['runtime'] ? 'PT' . (int)$c['runtime'] . 'M' : null,
-    'contentRating' => $c['age_rating'] ?: null,
-    'numberOfSeasons' => !$isMovie && $seasons ? count($seasons) : null,
-    'trailer' => $c['trailer'] ? ['@type' => 'VideoObject', 'name' => 'Trailer — ' . $c['title'], 'embedUrl' => 'https://www.youtube.com/embed/' . $c['trailer'], 'thumbnailUrl' => 'https://i.ytimg.com/vi/' . $c['trailer'] . '/hqdefault.jpg', 'uploadDate' => $c['release_date'] ?: date('Y-m-d', strtotime($c['created_at']))] : null,
-], fn($v) => $v !== null && $v !== '');
 $listName = type_label($c['type'], true);
 $listPage = ['movie' => 'filmes', 'series' => 'series', 'anime' => 'animes'][$c['type']];
-$jsonLd = [$ld, [
-    '@context' => 'https://schema.org',
-    '@type' => 'BreadcrumbList',
-    'itemListElement' => [
-        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Início', 'item' => site_url()],
-        ['@type' => 'ListItem', 'position' => 2, 'name' => $listName, 'item' => site_url(page_url($listPage))],
-        ['@type' => 'ListItem', 'position' => 3, 'name' => $c['title'], 'item' => $canonical],
-    ],
-]];
+$jsonLd = [
+    schema_page('ItemPage', $canonical, $pageTitle, $metaDescription, ['@id' => $canonical . '#titulo']),
+    schema_title($c, $canonical, $isMovie ? [] : $seasons, $episodesBySeason ?? []),
+    schema_breadcrumb([['Início', site_url()], [$listName, site_url(page_url($listPage))], [$c['title'], $canonical]]),
+];
 $active = $c['type'];
 $bodyClass = 'has-hero';
 require __DIR__ . '/includes/header.php';

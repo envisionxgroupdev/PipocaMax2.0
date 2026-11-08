@@ -19,6 +19,15 @@ $pageTitle = 'TV Online';
 $canonical = site_url(page_url('tv'));
 $metaDescription = 'Canais de TV ao vivo no ' . site_name() . '.';
 $noindex = $cat !== '';
+$chList = [];
+foreach ($channels as $i => $ch) {
+    $chList[] = ['@type' => 'ListItem', 'position' => ($page - 1) * $perPage + $i + 1, 'url' => site_url(channel_url($ch)), 'name' => $ch['name']];
+}
+$jsonLd = [
+    schema_page('CollectionPage', $canonical, 'TV Online — canais ao vivo', $metaDescription, $chList ? ['@id' => $canonical . '#canais'] : null),
+    $chList ? ['@type' => 'ItemList', '@id' => $canonical . '#canais', 'name' => 'Canais de TV ao vivo', 'numberOfItems' => $totalCh, 'itemListElement' => $chList] : null,
+    schema_breadcrumb([['Início', site_url()], ['TV Online', $canonical]]),
+];
 $active = 'tv';
 require __DIR__ . '/includes/header.php';
 ?>

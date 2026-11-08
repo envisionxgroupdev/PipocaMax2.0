@@ -440,11 +440,6 @@ input[type=checkbox] { accent-color: var(--red); width: 16px; height: 16px; }
 .input-prefix input { border: 0 !important; flex: 1; min-width: 0; padding-left: 0 !important; }
 .mini-progress { height: 4px; background: #262626; border-radius: 4px; overflow: hidden; margin-top: 6px; max-width: 140px; }
 .mini-progress span { display: block; height: 100%; background: var(--red); }
-.md-box { background: rgba(229, 9, 20, .05); border: 1px dashed rgba(229, 9, 20, .4); border-radius: 10px; padding: 12px 14px; margin: 14px 0; }
-.md-box b { display: flex; align-items: center; gap: 8px; }
-.md-box .form-row { margin-top: 8px; }
-.md-jobs { list-style: none; margin: 8px 0 0; padding: 0; font-size: 12.5px; }
-.md-jobs li { display: flex; gap: 8px; align-items: center; padding: 4px 0; flex-wrap: wrap; }
 
 /* Importar o que falta */
 .imp-stats { display: flex; gap: 12px; flex-wrap: wrap; margin: 14px 0 18px; }

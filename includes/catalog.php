@@ -82,6 +82,11 @@ $metaDescription = [
     'release' => 'Lançamentos do ' . site_name() . ': os filmes, séries e animes mais recentes.',
 ][$catType];
 $noindex = ($genre !== '' || $year > 0 || $sort !== 'recentes');
+$jsonLd = [
+    schema_page('CollectionPage', $canonical, $pageTitle, $metaDescription, $items ? ['@id' => $canonical . '#lista'] : null),
+    $items ? ['@id' => $canonical . '#lista'] + schema_item_list($items, $heading) : null,
+    schema_breadcrumb([['Início', site_url()], [$heading, $canonical]]),
+];
 require __DIR__ . '/header.php';
 ?>
 <div class="container page">

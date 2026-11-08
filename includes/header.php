@@ -38,14 +38,14 @@ $nav = [
 <?php if (setting('google_verification')): ?><meta name="google-site-verification" content="<?= e(setting('google_verification')) ?>"><?php endif; ?>
 <?php if (setting('bing_verification')): ?><meta name="msvalidate.01" content="<?= e(setting('bing_verification')) ?>"><?php endif; ?>
 <?php if (setting('yandex_verification')): ?><meta name="yandex-verification" content="<?= e(setting('yandex_verification')) ?>"><?php endif; ?>
-<?php foreach ($jsonLd as $ld): ?><script type="application/ld+json"><?= json_encode($ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
-<?php endforeach; ?>
+<?= schema_render($jsonLd) ?>
 <?php if (preg_match('/^G-[A-Z0-9]+$/', (string)setting('google_analytics'))): ?>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',<?= json_encode(setting('google_analytics')) ?>);
 (function(){var done=0;function go(){if(done)return;done=1;var s=document.createElement('script');s.async=1;s.src='https://www.googletagmanager.com/gtag/js?id='+<?= json_encode(rawurlencode(setting('google_analytics'))) ?>;document.head.appendChild(s);}
 ['scroll','touchstart','pointerdown','keydown'].forEach(function(e){addEventListener(e,go,{once:true,passive:true});});addEventListener('load',function(){setTimeout(go,3500);});})();</script>
 <?php endif; ?>
 <link rel="icon" href="<?= e(asset('img/favicon.svg')) ?>" type="image/svg+xml">
+<link rel="apple-touch-icon" href="<?= e(url('assets/img/apple-touch-icon.png')) ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://image.tmdb.org" crossorigin>

@@ -9,16 +9,6 @@ if (!$ep) {
     redirect('admin/conteudos.php');
 }
 
-if (is_post() && in_str('action') === 'md_send') {
-    csrf_check();
-    try {
-        mixdrop_send(in_str('md_url'), (int)$ep['cid'], $id, in_str('md_audio'));
-        flash('success', 'Vídeo enviado para o MixDrop. O player aparece sozinho quando ficar pronto.');
-    } catch (Throwable $e) {
-        flash('error', $e->getMessage());
-    }
-    redirect('admin/episodio.php?id=' . $id . '#players');
-}
 if (is_post()) {
     csrf_check();
     $num = max(1, in_int('episode_number', (int)$ep['episode_number']));
@@ -58,7 +48,6 @@ admin_header('T' . $ep['season_number'] . ':E' . $ep['episode_number'] . ' — '
 
 <section class="panel" id="players">
   <div class="panel-head"><h2>Players do episódio</h2><a class="btn btn-sm" target="_blank" href="<?= e(url('titulo.php?id=' . $ep['cid'] . '#ep-' . $id)) ?>"><?= icon('eye') ?> Ver no site</a></div>
-  <?php mixdrop_box('episode', $id, 'players'); ?>
   <?php players_editor($players, 'episode_id', $id, $self . '#players'); ?>
 </section>
 

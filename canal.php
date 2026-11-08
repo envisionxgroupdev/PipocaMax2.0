@@ -35,6 +35,20 @@ $pageTitle = $ch['name'] . ' ao vivo';
 $canonical = site_url(channel_url($ch));
 $metaDescription = 'Assista ' . $ch['name'] . ' ao vivo no ' . site_name() . '.';
 $metaImage = abs_img($ch['logo']);
+$jsonLd = [
+    schema_page('WebPage', $canonical, $pageTitle, $metaDescription, ['@id' => $canonical . '#canal']),
+    array_filter([
+        '@type' => 'TelevisionChannel',
+        '@id' => $canonical . '#canal',
+        'name' => $ch['name'],
+        'url' => $canonical,
+        'image' => $metaImage ?: null,
+        'genre' => $ch['category'] ?: null,
+        'broadcastChannelId' => $ch['slug'] ?: (string)$ch['id'],
+        'providesBroadcastService' => ['@type' => 'BroadcastService', 'name' => $ch['name'] . ' ao vivo', 'broadcastDisplayName' => $ch['name'], 'inLanguage' => 'pt-BR', 'provider' => ['@id' => schema_org_id()]],
+    ]),
+    schema_breadcrumb([['Início', site_url()], ['TV Online', site_url(page_url('tv'))], [$ch['name'], $canonical]]),
+];
 $active = 'tv';
 require __DIR__ . '/includes/header.php';
 $player = ['id' => (int)$ch['id'], 'name' => $ch['name'], 'url' => $ch['url'], 'kind' => $ch['kind'], 'audio' => '', 'quality' => ''];
