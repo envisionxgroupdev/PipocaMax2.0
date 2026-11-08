@@ -103,6 +103,23 @@ try {
             }
             json_out(['results' => array_map(fn($r) => $r + ['poster_url' => img($r['poster'], 'w185'), 'local_id' => $have[$r['tmdb_id']] ?? null], array_slice($res, 0, 18))]);
 
+        case 'find_new':
+            if (!is_post()) json_out(['error' => 'Método inválido'], 405);
+            csrf_check();
+            $type = in_str('type');
+            if (!in_array($type, ['movie', 'series', 'anime'], true)) $type = 'movie';
+            $src = in_str('src', 'all_years');
+            $ck = 'imp_cursor_' . $type . '_' . preg_replace('/\W/', '', $src);
+            $year = in_int('year', 0);
+            $page = in_int('page', 0);
+            if (in_str('resume') === '1' && $src !== 'one_year') {
+                $cur = json_decode((string)setting($ck, ''), true);
+                if (is_array($cur)) { $year = (int)($cur['year'] ?? $year); $page = (int)($cur['page'] ?? 1); }
+            }
+            $r = import_find_new($type, $src, max(1, min(50, in_int('want', 20))), $year, max(1, $page));
+            if ($src !== 'one_year') set_setting($ck, json_encode(['year' => $r['year'], 'page' => $r['page'], 'done' => $r['done']]));
+            json_out($r);
+
         case 'list':
             // IDs de uma página de lista do TMDB (para importação em massa)
             $ln = in_str('list');

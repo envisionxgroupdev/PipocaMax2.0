@@ -166,6 +166,68 @@ function tmdb_discover_year(string $what, int $year, int $page = 1): array
     return ['results' => $out, 'total_pages' => min(500, (int)($data['total_pages'] ?? 1))];
 }
 
+/** Fontes do "Importar o que falta" por tipo: chave => [rótulo, lista] */
+function import_sources(string $type): array
+{
+    $y = $type === 'movie' ? 'year_movie' : ($type === 'anime' ? 'year_anime' : 'year_tv');
+    $base = ['all_years' => ['Todos os anos (do mais novo ao mais antigo)', $y], 'one_year' => ['Só de um ano', $y]];
+    if ($type === 'movie') return $base + ['popular_movies' => ['Mais populares agora', 'popular_movies'], 'top_rated_movies' => ['Mais bem avaliados de todos os tempos', 'top_rated_movies'], 'trending_movies' => ['Em alta na semana', 'trending_movies'], 'now_playing' => ['Nos cinemas', 'now_playing']];
+    if ($type === 'anime') return $base + ['anime' => ['Mais populares', 'anime']];
+    return $base + ['popular_tv' => ['Mais populares agora', 'popular_tv'], 'top_rated_tv' => ['Mais bem avaliadas de todos os tempos', 'top_rated_tv'], 'trending_tv' => ['Em alta na semana', 'trending_tv'], 'on_air' => ['No ar agora', 'on_air']];
+}
+
+/**
+ * Procura no TMDB títulos que ainda NÃO estão no site, andando pelas páginas
+ * (e pelos anos, no modo "todos os anos") sozinho. Retorna os novos + onde parou.
+ */
+function import_find_new(string $type, string $src, int $want, int $year, int $page, float $maxSeconds = 8.0): array
+{
+    $sources = import_sources($type);
+    if (!isset($sources[$src])) $src = 'all_years';
+    $list = $sources[$src][1];
+    $byYear = in_array($src, ['all_years', 'one_year'], true);
+    $kind = $type === 'movie' ? 'movie' : 'tv';
+    $minYear = 1950;
+    $curYear = (int)date('Y');
+    if ($byYear && ($year < $minYear || $year > $curYear + 1)) $year = $curYear;
+    $page = max(1, $page);
+    $found = [];
+    $seen = [];
+    $start = microtime(true);
+    $done = false;
+    $requests = 0;
+    while (count($found) < $want && $requests < 15 && (microtime(true) - $start) < $maxSeconds) {
+        $r = $byYear ? tmdb_discover_year(str_replace('year_', '', $list), $year, $page) : tmdb_list($list, $page);
+        $requests++;
+        $res = array_values(array_filter($r['results'], fn($x) => ($x['kind'] ?? $kind) === $kind));
+        $ids = array_map(fn($x) => (int)$x['tmdb_id'], $res);
+        $have = [];
+        if ($ids) {
+            $in = implode(',', array_fill(0, count($ids), '?'));
+            $cond = $kind === 'movie' ? "type = 'movie'" : "type <> 'movie'";
+            foreach (q_all("SELECT tmdb_id FROM contents WHERE $cond AND tmdb_id IN ($in)", $ids) as $h) $have[(int)$h['tmdb_id']] = true;
+        }
+        foreach ($res as $x) {
+            $tid = (int)$x['tmdb_id'];
+            if (isset($have[$tid]) || isset($seen[$tid])) continue;
+            $seen[$tid] = true;
+            $found[] = ['tmdb_id' => $tid, 'title' => $x['title'], 'year' => $x['year']];
+            if (count($found) >= $want) break;
+        }
+        // próxima posição
+        $last = $page >= max(1, (int)$r['total_pages']) || !$r['results'];
+        if (count($found) >= $want) {
+            // podem sobrar novos nesta página: recomeça nela da próxima vez
+            break;
+        }
+        if (!$last) { $page++; continue; }
+        if ($src === 'all_years' && $year > $minYear) { $year--; $page = 1; continue; }
+        $done = true;
+        break;
+    }
+    return ['items' => $found, 'year' => $year, 'page' => $page, 'done' => $done, 'by_year' => $byYear];
+}
+
 /**
  * Importa (ou atualiza) um título do TMDB.
  * $type: movie | series | anime. Retorna o id local.

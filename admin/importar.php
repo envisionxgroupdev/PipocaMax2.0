@@ -1,7 +1,8 @@
 <?php
 require __DIR__ . '/_init.php';
 
-$aba = in_str('aba', 'buscar');
+$aba = in_str('aba', 'falta');
+if ($aba === 'listas') $aba = 'falta';
 $q = in_str('q');
 $kind = in_str('kind', 'movie') === 'tv' ? 'tv' : 'movie';
 $list = in_str('lista', 'now_playing');
@@ -52,9 +53,9 @@ admin_header('Importar do TMDB', 'importar');
 <?php else: ?>
 
 <div class="tabs mb big-tabs">
-  <a class="<?= $aba === 'buscar' ? 'active' : '' ?>" href="<?= e(url('admin/importar.php')) ?>"><?= icon('search') ?> Buscar e escolher</a>
+  <a class="<?= $aba === 'falta' ? 'active' : '' ?>" href="<?= e(url('admin/importar.php')) ?>"><?= icon('download') ?> Importar o que falta</a>
+  <a class="<?= $aba === 'buscar' ? 'active' : '' ?>" href="<?= e(url('admin/importar.php?aba=buscar')) ?>"><?= icon('search') ?> Buscar e escolher</a>
   <a class="<?= $aba === 'massa' ? 'active' : '' ?>" href="<?= e(url('admin/importar.php?aba=massa')) ?>"><?= icon('download') ?> Em massa (lista de nomes)</a>
-  <a class="<?= $aba === 'listas' ? 'active' : '' ?>" href="<?= e(url('admin/importar.php?aba=listas')) ?>"><?= icon('film') ?> Listas inteiras do TMDB</a>
 </div>
 
 <?php if ($aba === 'massa'): ?>
@@ -81,29 +82,44 @@ admin_header('Importar do TMDB', 'importar');
   </div>
 </section>
 
-<?php elseif ($aba === 'listas'): ?>
+<?php elseif ($aba === 'falta'):
+  $counts = [];
+  foreach (q_all('SELECT type, COUNT(*) n FROM contents GROUP BY type') as $c) $counts[$c['type']] = (int)$c['n'];
+  $types = ['movie' => 'Filmes', 'series' => 'Séries', 'anime' => 'Animes'];
+  $srcData = [];
+  foreach ($types as $t => $_) {
+      foreach (import_sources($t) as $k => [$label]) {
+          $cur = json_decode((string)setting('imp_cursor_' . $t . '_' . $k, ''), true);
+          $where = '';
+          if (is_array($cur) && $k !== 'one_year') {
+              $where = !empty($cur['done']) ? 'chegou ao fim da lista' : ($k === 'all_years' ? 'parou em ' . (int)$cur['year'] . ', página ' . (int)$cur['page'] : 'parou na página ' . (int)$cur['page']);
+          }
+          $srcData[$t][] = ['k' => $k, 'l' => $label, 'w' => $where];
+      }
+  }
+?>
 <section class="panel">
-  <div class="panel-head"><h2>Importar listas inteiras</h2></div>
-  <p class="muted">Importa os títulos de uma lista do TMDB, página por página. Cada página tem 20 títulos (3 páginas = 60 títulos). Os que você já tem são pulados. Use <b>"por ano"</b> para montar o catálogo com títulos mais antigos.</p>
-  <div class="form-row">
-    <select id="list-name">
-      <optgroup label="Por ano (mais populares do ano)">
-        <option value="year_movie" data-type="movie" data-year>Filmes de um ano</option>
-        <option value="year_tv" data-type="series" data-year>Séries de um ano</option>
-        <option value="year_anime" data-type="anime" data-year>Animes de um ano</option>
-      </optgroup>
-      <optgroup label="Listas do momento">
-      <?php foreach ($lists as $k => [$l, $t]): ?><option value="<?= $k ?>" data-type="<?= $t ?>"><?= e($l) ?></option><?php endforeach; ?>
-      </optgroup>
-    </select>
-    <span class="list-year"><span class="muted">ano</span> <input type="number" id="list-year" value="<?= date('Y') - 1 ?>" min="1900" max="<?= date('Y') + 1 ?>" class="w-year"></span>
-    <span class="muted">da página</span>
-    <input type="number" id="list-from" value="1" min="1" max="500" class="w-num">
-    <span class="muted">até</span>
-    <input type="number" id="list-to" value="3" min="1" max="500" class="w-num">
-    <label class="check"><input type="checkbox" id="list-release"> Marcar como lançamento</label>
-    <button class="btn btn-red" id="list-start"><?= icon('download') ?> Importar lista</button>
+  <div class="panel-head"><h2>Importar o que falta</h2></div>
+  <p class="muted">Escolha o tipo e quantos títulos <b>novos</b> quer. O sistema procura sozinho no TMDB, ano por ano e página por página, <b>pula o que já está no site</b> e continua de onde parou na próxima vez.</p>
+  <div class="imp-stats">
+    <?php foreach ($types as $t => $l): ?><div><b><?= number_format($counts[$t] ?? 0, 0, ',', '.') ?></b><span><?= $l ?> no site</span></div><?php endforeach; ?>
   </div>
+  <div class="imp-grid">
+    <label class="field"><span>O que importar</span>
+      <select id="nf-type"><?php foreach ($types as $t => $l): ?><option value="<?= $t ?>"><?= $l ?></option><?php endforeach; ?></select></label>
+    <label class="field"><span>De onde</span><select id="nf-src"></select><small class="muted" id="nf-where"></small></label>
+    <label class="field" id="nf-year-f" hidden><span>Ano</span><input type="number" id="nf-year" value="<?= date('Y') ?>" min="1950" max="<?= date('Y') + 1 ?>"></label>
+    <label class="field"><span>Quantos novos</span>
+      <select id="nf-want"><?php foreach ([10, 20, 50, 100, 200] as $n): ?><option <?= $n === 50 ? 'selected' : '' ?>><?= $n ?></option><?php endforeach; ?></select></label>
+  </div>
+  <div class="form-row">
+    <label class="check"><input type="checkbox" id="nf-release"> Marcar como lançamento</label>
+    <label class="check"><input type="checkbox" id="nf-restart"> Começar do início (ignorar onde parou)</label>
+    <span class="grow"></span>
+    <button class="btn btn-red btn-lg" id="nf-start"><?= icon('download') ?> Procurar e importar</button>
+  </div>
+  <p class="muted small" id="nf-status"></p>
+  <script type="application/json" id="nf-data"><?= json_encode($srcData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
 </section>
 
 <?php else: ?>

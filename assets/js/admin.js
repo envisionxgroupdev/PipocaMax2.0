@@ -134,6 +134,47 @@
     });
   }
 
+  // Aba "Importar o que falta"
+  var nfData = document.getElementById('nf-data');
+  if (nfData) {
+    var NF = JSON.parse(nfData.textContent), nfType = document.getElementById('nf-type'), nfSrc = document.getElementById('nf-src');
+    var nfWhere = document.getElementById('nf-where'), nfYearF = document.getElementById('nf-year-f'), nfStatus = document.getElementById('nf-status');
+    var fillSrc = function () {
+      nfSrc.innerHTML = NF[nfType.value].map(function (s) { return '<option value="' + s.k + '">' + escH(s.l) + '</option>'; }).join('');
+      updSrc();
+    };
+    var updSrc = function () {
+      var s = NF[nfType.value].filter(function (x) { return x.k === nfSrc.value; })[0] || {};
+      nfWhere.textContent = s.w ? 'Última vez: ' + s.w + '.' : '';
+      nfYearF.hidden = nfSrc.value !== 'one_year';
+    };
+    nfType.addEventListener('change', fillSrc); nfSrc.addEventListener('change', updSrc); fillSrc();
+    var nfBtn = document.getElementById('nf-start');
+    nfBtn.addEventListener('click', function () {
+      var want = +document.getElementById('nf-want').value, type = nfType.value, src = nfSrc.value, items = [];
+      var oneYear = src === 'one_year';
+      var pos = { year: oneYear ? +document.getElementById('nf-year').value : 0, page: 1 };
+      var resume = !document.getElementById('nf-restart').checked && !oneYear;
+      nfBtn.disabled = true;
+      var step = function (first) {
+        nfStatus.textContent = 'Procurando títulos novos no TMDB… ' + items.length + ' de ' + want + ' encontrados' + (pos.year ? ' (ano ' + pos.year + ')' : '') + '.';
+        return ajax('find_new', { type: type, src: src, want: want - items.length, year: pos.year, page: pos.page, resume: first && resume ? '1' : '0' }).then(function (j) {
+          if (j.error) throw new Error(j.error);
+          (j.items || []).forEach(function (r) { items.push({ item: String(r.tmdb_id), type: type, label: r.title }); });
+          pos = { year: j.year, page: j.page };
+          if (items.length < want && !j.done) return step(false);
+          return j.done;
+        });
+      };
+      step(true).then(function (ended) {
+        nfBtn.disabled = false;
+        if (!items.length) { nfStatus.textContent = ended ? 'Nada novo: você já tem tudo dessa lista. Escolha outra fonte ou marque "Começar do início".' : 'Nenhum título novo encontrado.'; return; }
+        nfStatus.textContent = items.length + ' título(s) novo(s) encontrados' + (ended ? ' (a lista acabou).' : '.');
+        runQueue(items, { release: document.getElementById('nf-release').checked });
+      }).catch(function (e) { nfBtn.disabled = false; nfStatus.textContent = 'Erro: ' + e.message; });
+    });
+  }
+
   // Aba "Listas inteiras"
   var lsel = document.getElementById('list-name');
   if (lsel) {
