@@ -41,8 +41,9 @@ $nav = [
 <?php foreach ($jsonLd as $ld): ?><script type="application/ld+json"><?= json_encode($ld, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <?php endforeach; ?>
 <?php if (preg_match('/^G-[A-Z0-9]+$/', (string)setting('google_analytics'))): ?>
-<script async src="https://www.googletagmanager.com/gtag/js?id=<?= e(setting('google_analytics')) ?>"></script>
-<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',<?= json_encode(setting('google_analytics')) ?>);</script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config',<?= json_encode(setting('google_analytics')) ?>);
+(function(){var done=0;function go(){if(done)return;done=1;var s=document.createElement('script');s.async=1;s.src='https://www.googletagmanager.com/gtag/js?id='+<?= json_encode(rawurlencode(setting('google_analytics'))) ?>;document.head.appendChild(s);}
+['scroll','touchstart','pointerdown','keydown'].forEach(function(e){addEventListener(e,go,{once:true,passive:true});});addEventListener('load',function(){setTimeout(go,3500);});})();</script>
 <?php endif; ?>
 <link rel="icon" href="<?= e(asset('img/favicon.svg')) ?>" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -57,7 +58,8 @@ $nav = [
 <link rel="preload" as="image" href="<?= e(img($preloadHero, 'w780')) ?>" media="(max-width: 900px)" fetchpriority="high">
 <link rel="preload" as="image" href="<?= e(img($preloadHero, 'w1280')) ?>" media="(min-width: 901px)" fetchpriority="high">
 <?php endif; ?>
-<link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>">
+<?php $cssInline = inline_css('css/style.css'); ?>
+<?php if ($cssInline !== ''): ?><style><?= $cssInline ?></style><?php else: ?><link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>"><?php endif; ?>
 <?= custom_code('head') ?>
 </head>
 <body class="<?= e($bodyClass ?? '') ?>">

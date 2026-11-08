@@ -40,6 +40,17 @@ function url(string $path = ''): string
     return BASE_URL . '/' . ltrim($path, '/');
 }
 
+/** CSS do site direto na página: a tela aparece sem esperar outro arquivo */
+function inline_css(string $path): string
+{
+    $file = PM_ROOT . '/assets/' . ltrim($path, '/');
+    $css = is_file($file) ? (string)@file_get_contents($file) : '';
+    if ($css === '' || strlen($css) > 80000) return '';
+    $css = preg_replace('~/\*.*?\*/~s', '', $css);          // tira comentários
+    $css = preg_replace('~\s*\n\s*~', "\n", $css);           // tira espaços extras
+    return str_replace('</', '<\/', trim($css));
+}
+
 function asset(string $path): string
 {
     $file = PM_ROOT . '/assets/' . ltrim($path, '/');
@@ -487,7 +498,7 @@ function format_runtime(?int $min): string
 }
 
 /** Card de título usado nas fileiras e grades */
-function render_card(array $c): string
+function render_card(array $c, bool $defer = false): string
 {
     $badge = '';
     if (!empty($c['is_release'])) {
@@ -495,10 +506,24 @@ function render_card(array $c): string
     }
     $rating = $c['rating'] ? '<span class="card-rating">★ ' . e(number_format((float)$c['rating'], 1)) . '</span>' : '';
     return '<a class="card" href="' . e(content_url($c)) . '" title="' . e($c['title']) . '">'
-        . '<div class="card-img"><img loading="lazy" decoding="async" src="' . e(img($c['poster'], 'w342')) . '"' . (($ss = poster_srcset($c['poster'])) ? ' srcset="' . $ss . '" sizes="(max-width: 900px) 34vw, 210px"' : '') . ' alt="' . e($c['title']) . '">' . $badge
+        . '<div class="card-img">' . card_img($c, $defer) . $badge
         . '<div class="card-hover"><span class="play-ico"></span></div></div>'
         . '<div class="card-info"><h3>' . e($c['title']) . '</h3><p>' . e(type_label($c['type'])) . ($c['year'] ? ' • ' . (int)$c['year'] : '') . $rating . '</p></div>'
         . '</a>';
+}
+
+/** Imagem do cartão. $defer = só carrega quando a pessoa rolar a fileira */
+function card_img(array $c, bool $defer = false): string
+{
+    $src = e(img($c['poster'], 'w342'));
+    $ss = poster_srcset($c['poster']);
+    $sizes = '(max-width: 900px) 100px, 210px';
+    $alt = e($c['title']);
+    if ($defer) {
+        return '<img class="lz" decoding="async" src="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" data-src="' . $src . '"'
+            . ($ss ? ' data-srcset="' . $ss . '" sizes="' . $sizes . '"' : '') . ' alt="' . $alt . '">';
+    }
+    return '<img loading="lazy" decoding="async" src="' . $src . '"' . ($ss ? ' srcset="' . $ss . '" sizes="' . $sizes . '"' : '') . ' alt="' . $alt . '">';
 }
 
 function render_row(string $title, array $items, ?string $more = null, string $id = ''): string
@@ -511,8 +536,8 @@ function render_row(string $title, array $items, ?string $more = null, string $i
         $html .= '<a class="row-more" href="' . e($more) . '">Ver tudo ›</a>';
     }
     $html .= '</div><div class="row-wrap"><button class="row-nav prev" aria-label="Anterior">‹</button><div class="row-track">';
-    foreach ($items as $c) {
-        $html .= render_card($c);
+    foreach (array_values($items) as $i => $c) {
+        $html .= render_card($c, $i >= 6);
     }
     $html .= '</div><button class="row-nav next" aria-label="Próximo">›</button></div></section>';
     return $html;

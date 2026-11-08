@@ -39,7 +39,12 @@
 
   /* ---------- Topo ---------- */
   var topbar = $('#topbar');
-  function onScroll() { if (topbar) topbar.classList.toggle('scrolled', window.scrollY > 30); }
+  var scrollTick = false;
+  function onScroll() {
+    if (scrollTick) return;
+    scrollTick = true;
+    requestAnimationFrame(function () { scrollTick = false; if (topbar) topbar.classList.toggle('scrolled', window.scrollY > 30); });
+  }
   window.addEventListener('scroll', onScroll, { passive: true });
   onScroll();
 
@@ -119,8 +124,32 @@
   }
 
   /* ---------- Fileiras ---------- */
+  var showImg = function (im) {
+    if (!im.dataset.src) return;
+    if (im.dataset.srcset) im.srcset = im.dataset.srcset;
+    im.src = im.dataset.src;
+    im.removeAttribute('data-src'); im.removeAttribute('data-srcset'); im.classList.remove('lz');
+  };
+  var loadRow = function (track) { $$('img.lz', track).forEach(showImg); };
+  // Telas largas: mostra logo os cartões que já cabem na tela (leitura única, sem travar)
+  var fillRow = function (t) {
+    var lim = t.clientWidth * 1.3;
+    $$('img.lz', t).filter(function (im) { return im.closest('.card').offsetLeft < lim; }).forEach(showImg);
+  };
+  if ('IntersectionObserver' in window) {
+    var rowIO = new IntersectionObserver(function (ents) {
+      ents.forEach(function (en) { if (en.isIntersecting) { rowIO.unobserve(en.target); fillRow(en.target); } });
+    }, { rootMargin: '300px 0px' });
+    $$('.row-track').forEach(function (t) { if ($('img.lz', t)) rowIO.observe(t); });
+  } else {
+    $$('.row-track').forEach(loadRow);
+  }
   $$('.row-wrap').forEach(function (w) {
     var track = $('.row-track', w);
+    var once = function () { loadRow(track); track.removeEventListener('scroll', once); w.removeEventListener('mouseenter', once); };
+    track.addEventListener('scroll', once, { passive: true });
+    w.addEventListener('mouseenter', once);
+    track.addEventListener('touchstart', once, { passive: true });
     $$('.row-nav', w).forEach(function (b) {
       b.addEventListener('click', function () {
         var dir = b.classList.contains('next') ? 1 : -1;
