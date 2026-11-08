@@ -108,6 +108,7 @@ require_once __DIR__ . '/tmdb.php';
 require_once __DIR__ . '/autoimport.php';
 require_once __DIR__ . '/ads.php';
 require_once __DIR__ . '/tvimport.php';
+require_once __DIR__ . '/mixdrop.php';
 
 try {
     db();
@@ -178,5 +179,25 @@ if ((int)setting('db_version', '1') < 5 && (int)setting('mig5_lock', '0') < time
     $pdo->commit();
     set_setting('db_version', '5');
     if (function_exists('cache_bump')) cache_bump();
+}
+if ((int)setting('db_version', '1') < 6) {
+    q("CREATE TABLE IF NOT EXISTS mixdrop_jobs (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        content_id INT UNSIGNED NULL,
+        episode_id INT UNSIGNED NULL,
+        source_url TEXT NOT NULL,
+        remote_id VARCHAR(40) NOT NULL DEFAULT '',
+        fileref VARCHAR(40) NOT NULL DEFAULT '',
+        embed_url VARCHAR(255) NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'queued',
+        progress SMALLINT NOT NULL DEFAULT 0,
+        audio VARCHAR(30) NULL,
+        error VARCHAR(255) NULL,
+        player_id INT UNSIGNED NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        KEY idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    set_setting('db_version', '6');
 }
 refresh_current_user();

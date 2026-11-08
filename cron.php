@@ -20,6 +20,8 @@ if (!$cli) {
         exit('Chave inválida.');
     }
 }
+$md = mixdrop_check(40);
+if ($md) echo "Envios MixDrop atualizados: $md\n";
 $tv = tv_refresh_due();
 if ($tv) echo "Listas de TV atualizadas: $tv\n";
 if (setting('auto_enabled') !== '1') {

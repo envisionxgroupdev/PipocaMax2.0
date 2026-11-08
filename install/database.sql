@@ -140,6 +140,24 @@ CREATE TABLE IF NOT EXISTS login_attempts (
   last_attempt DATETIME NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS mixdrop_jobs (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  content_id INT UNSIGNED NULL,
+  episode_id INT UNSIGNED NULL,
+  source_url TEXT NOT NULL,
+  remote_id VARCHAR(40) NOT NULL DEFAULT '',
+  fileref VARCHAR(40) NOT NULL DEFAULT '',
+  embed_url VARCHAR(255) NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'queued',
+  progress SMALLINT NOT NULL DEFAULT 0,
+  audio VARCHAR(30) NULL,
+  error VARCHAR(255) NULL,
+  player_id INT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 INSERT IGNORE INTO settings (`key`, `value`) VALUES
 ('site_name', 'Pipoca Max'),
 ('site_description', 'Filmes, séries, animes e TV online em um só lugar.'),
@@ -157,4 +175,4 @@ INSERT IGNORE INTO settings (`key`, `value`) VALUES
 ('seo_home_title', ''),
 ('google_verification', ''),
 ('google_analytics', ''),
-('db_version', '5');
+('db_version', '6');

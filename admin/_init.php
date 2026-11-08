@@ -19,6 +19,7 @@ function admin_header(string $title, string $active = ''): void
         ['auto', 'automatico.php', 'Importação automática', 'wrench'],
         ['canais', 'canais.php', 'TV Online', 'live'],
         ['anuncios', 'anuncios.php', 'Anúncios e códigos', 'grid'],
+        ['mixdrop', 'mixdrop.php', 'MixDrop', 'external', mixdrop_pending()],
         ['usuarios', 'usuarios.php', 'Usuários', 'users'],
         ['reportes', 'reportes.php', 'Reportes', 'flag', $openReports],
         ['config', 'configuracoes.php', 'Configurações', 'settings'],
@@ -76,6 +77,37 @@ function admin_footer(): void
 </body>
 </html>
 <?php
+}
+
+/** Caixa "Enviar para o MixDrop" + envios deste filme/episódio */
+function mixdrop_box(string $owner, int $ownerId, string $anchor): void
+{
+    $jobs = q_all('SELECT * FROM mixdrop_jobs WHERE ' . ($owner === 'episode' ? 'episode_id' : 'content_id') . ' = ?' . ($owner === 'episode' ? '' : ' AND episode_id IS NULL') . ' ORDER BY id DESC LIMIT 5', [$ownerId]);
+    $pending = count(array_filter($jobs, fn($j) => in_array($j['status'], ['tosend', 'queued', 'downloading', 'converting'], true)));
+    $labels = ['tosend' => 'aguardando envio', 'queued' => 'na fila do MixDrop', 'downloading' => 'baixando', 'converting' => 'convertendo', 'done' => 'pronto ✓ (player criado)', 'error' => 'erro'];
+    ?>
+    <div class="md-box" data-md-pending="<?= $pending ?>">
+      <b><?= icon('external') ?> Enviar vídeo para o MixDrop</b>
+      <?php if (!mixdrop_configured()): ?>
+        <p class="muted small">Configure sua conta em <a href="<?= e(url('admin/mixdrop.php')) ?>">MixDrop</a> para enviar vídeos por link.</p>
+      <?php else: ?>
+        <p class="muted small">Cole o link direto do vídeo (.mp4). O MixDrop baixa de lá e o player aparece aqui sozinho quando ficar pronto.</p>
+        <form method="post" class="form-row">
+          <?= csrf_field() ?><input type="hidden" name="action" value="md_send"><input type="hidden" name="anchor" value="<?= e($anchor) ?>">
+          <input name="md_url" class="grow" placeholder="https://…/video.mp4" required>
+          <input name="md_audio" value="<?= e(setting('mixdrop_audio')) ?>" placeholder="Áudio" list="audios" style="width:130px">
+          <button class="btn btn-sm btn-red"><?= icon('download') ?> Enviar</button>
+        </form>
+      <?php endif; ?>
+      <?php if ($jobs): ?>
+        <ul class="md-jobs">
+          <?php foreach ($jobs as $j): ?>
+            <li><span class="pill <?= $j['status'] === 'done' ? 'pill-ok' : ($j['status'] === 'error' ? 'pill-red' : 'pill-warn') ?>"><?= e($labels[$j['status']] ?? $j['status']) ?><?= $j['status'] === 'downloading' ? ' ' . (int)$j['progress'] . '%' : '' ?></span><small class="muted ellipsis"><?= e($j['source_url']) ?></small><?php if ($j['error'] && $j['status'] === 'error'): ?><small class="tv-err"><?= e($j['error']) ?></small><?php endif; ?></li>
+          <?php endforeach; ?>
+        </ul>
+      <?php endif; ?>
+    </div>
+    <?php
 }
 
 /** Formulário de confirmação de exclusão (botão) */

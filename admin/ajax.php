@@ -69,6 +69,12 @@ try {
             tv_update_source($src['id'], ['last' => time(), 'count' => count($rows), 'error' => '']);
             json_out(['ok' => true, 'removed' => $removed]);
 
+        case 'mixdrop_check':
+            if (!is_post()) json_out(['error' => 'Método inválido'], 405);
+            csrf_check();
+            $n = mixdrop_check(20);
+            json_out(['ok' => true, 'changed' => $n, 'pending' => mixdrop_pending()]);
+
         case 'auto_log':
             if (!is_post()) json_out(['error' => 'Método inválido'], 405);
             csrf_check();

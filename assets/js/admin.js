@@ -487,3 +487,20 @@ document.querySelectorAll('[data-y]').forEach(function (b) {
     run(box.dataset.autostart, b ? b.dataset.tvName : '');
   }
 })();
+
+/* ===== MixDrop: confere os envios sozinho enquanto a página estiver aberta ===== */
+(function () {
+  var boxes = Array.prototype.filter.call(document.querySelectorAll('[data-md-pending]'), function (b) { return +b.dataset.mdPending > 0; });
+  if (!boxes.length) return;
+  var PMA = window.PM || {};
+  var tick = function () {
+    var fd = new FormData(); fd.append('_csrf', PMA.csrf);
+    fetch(PMA.base + '/admin/ajax.php?action=mixdrop_check', { method: 'POST', body: fd, credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j.changed) { location.reload(); return; }
+        if (j.pending) setTimeout(tick, 15000);
+      }).catch(function () { setTimeout(tick, 30000); });
+  };
+  setTimeout(tick, 5000);
+})();
