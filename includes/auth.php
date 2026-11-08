@@ -10,7 +10,7 @@ function refresh_current_user(): void
     if (empty($_SESSION['uid'])) {
         return;
     }
-    $u = q_one('SELECT id, name, email, role, status, avatar_color FROM users WHERE id = ?', [(int)$_SESSION['uid']]);
+    $u = q_one('SELECT id, name, email, role, status, avatar_color, notif_seen FROM users WHERE id = ?', [(int)$_SESSION['uid']]);
     if (!$u || $u['status'] !== 'active') {
         unset($_SESSION['uid']);
         return;

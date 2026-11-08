@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
   role ENUM('user','admin') NOT NULL DEFAULT 'user',
   status ENUM('active','banned') NOT NULL DEFAULT 'active',
   avatar_color VARCHAR(10) NOT NULL DEFAULT '#e50914',
+  notif_seen INT UNSIGNED NOT NULL DEFAULT 0,
   last_login DATETIME NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -175,4 +176,18 @@ INSERT IGNORE INTO settings (`key`, `value`) VALUES
 ('seo_home_title', ''),
 ('google_verification', ''),
 ('google_analytics', ''),
-('db_version', '6');
+('db_version', '7');
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(150) NOT NULL,
+  message TEXT NULL,
+  link VARCHAR(255) NULL,
+  image VARCHAR(255) NULL,
+  content_id INT UNSIGNED NULL,
+  audience VARCHAR(10) NOT NULL DEFAULT 'all',
+  active TINYINT(1) NOT NULL DEFAULT 1,
+  expires_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_active (active, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

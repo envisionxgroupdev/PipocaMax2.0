@@ -19,6 +19,7 @@ function admin_header(string $title, string $active = ''): void
         ['auto', 'automatico.php', 'Importação automática', 'wrench'],
         ['canais', 'canais.php', 'TV Online', 'live'],
         ['anuncios', 'anuncios.php', 'Anúncios e códigos', 'grid'],
+        ['notificacoes', 'notificacoes.php', 'Notificações', 'bell'],
         ['mixdrop', 'mixdrop.php', 'MixDrop', 'external', mixdrop_pending()],
         ['usuarios', 'usuarios.php', 'Usuários', 'users'],
         ['reportes', 'reportes.php', 'Reportes', 'flag', $openReports],

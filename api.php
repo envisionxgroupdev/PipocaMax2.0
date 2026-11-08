@@ -37,6 +37,15 @@ switch ($action) {
             'players' => players_for_front($players),
         ]);
 
+    case 'notif_seen':
+        if (!is_post()) json_out(['error' => 'Método inválido'], 405);
+        csrf_check();
+        if ($u = current_user()) {
+            $nid = in_int('id');
+            q('UPDATE users SET notif_seen = ? WHERE id = ? AND notif_seen < ?', [$nid, $u['id'], $nid]);
+        }
+        json_out(['ok' => true]);
+
     case 'favorite':
         if (!is_post()) json_out(['error' => 'Método inválido'], 405);
         csrf_check();

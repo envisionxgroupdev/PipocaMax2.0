@@ -94,6 +94,30 @@
     document.addEventListener('click', function () { um.classList.remove('open'); });
   }
 
+  /* ---------- Sininho ---------- */
+  var bell = $('.bell');
+  if (bell) {
+    var last = +bell.dataset.last, guest = +bell.dataset.seen < 0, seen;
+    try { seen = guest ? +(localStorage.getItem('pm_notif_seen') || 0) : +bell.dataset.seen; } catch (e) { seen = 0; }
+    var unread = $$('.bell-list li', bell).filter(function (li) { return +li.dataset.id > seen; });
+    unread.forEach(function (li) { li.classList.add('new'); });
+    var cnt = $('.bell-count', bell);
+    if (unread.length) { cnt.textContent = unread.length > 9 ? '9+' : unread.length; cnt.hidden = false; }
+    $('.bell-btn', bell).addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      if (um) um.classList.remove('open');
+      bell.classList.toggle('open');
+      if (bell.classList.contains('open') && last > seen) {
+        seen = last; cnt.hidden = true;
+        if (guest) { try { localStorage.setItem('pm_notif_seen', last); } catch (e) {} }
+        else post('notif_seen', { id: last });
+      }
+    });
+    $('.bell-drop', bell).addEventListener('click', function (ev) { ev.stopPropagation(); });
+    document.addEventListener('click', function () { bell.classList.remove('open'); });
+    if (um) $('.avatar', um).addEventListener('click', function () { bell.classList.remove('open'); });
+  }
+
   /* ---------- Fileiras ---------- */
   $$('.row-wrap').forEach(function (w) {
     var track = $('.row-track', w);

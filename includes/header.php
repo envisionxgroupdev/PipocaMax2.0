@@ -76,6 +76,7 @@ $nav = [
         <button type="button" class="search-toggle" aria-label="Buscar"><?= icon('search') ?></button>
         <input type="search" name="q" placeholder="Títulos, gêneros..." value="<?= e($_GET['q'] ?? '') ?>" autocomplete="off">
       </form>
+      <?= notif_bell($user) ?>
       <?php if ($user): ?>
         <div class="usermenu">
           <button class="avatar" style="background:<?= e($user['avatar_color']) ?>" aria-label="Minha conta"><?= e(mb_strtoupper(mb_substr($user['name'], 0, 1))) ?></button>

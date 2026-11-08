@@ -109,6 +109,7 @@ require_once __DIR__ . '/autoimport.php';
 require_once __DIR__ . '/ads.php';
 require_once __DIR__ . '/tvimport.php';
 require_once __DIR__ . '/mixdrop.php';
+require_once __DIR__ . '/notifications.php';
 
 try {
     db();
@@ -199,5 +200,22 @@ if ((int)setting('db_version', '1') < 6) {
         KEY idx_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     set_setting('db_version', '6');
+}
+if ((int)setting('db_version', '1') < 7) {
+    q("CREATE TABLE IF NOT EXISTS notifications (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(150) NOT NULL,
+        message TEXT NULL,
+        link VARCHAR(255) NULL,
+        image VARCHAR(255) NULL,
+        content_id INT UNSIGNED NULL,
+        audience VARCHAR(10) NOT NULL DEFAULT 'all',
+        active TINYINT(1) NOT NULL DEFAULT 1,
+        expires_at DATETIME NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        KEY idx_active (active, id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    try { q('ALTER TABLE users ADD COLUMN notif_seen INT UNSIGNED NOT NULL DEFAULT 0'); } catch (Throwable $e) { /* já existe */ }
+    set_setting('db_version', '7');
 }
 refresh_current_user();

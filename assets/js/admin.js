@@ -134,6 +134,36 @@
     });
   }
 
+  // Notificações: título do site, modelos e prévia
+  var ntf = document.getElementById('notif-form');
+  if (ntf) {
+    var g = function (id) { return document.getElementById(id); };
+    var prev = function () {
+      g('np-title').textContent = g('nt-title').value || 'Título da notificação';
+      g('np-msg').textContent = g('nt-msg').value;
+      var im = g('nt-img').value.trim();
+      g('np-img').hidden = !im; g('np-ico').hidden = !!im; if (im) g('np-img').src = im;
+    };
+    ['nt-title', 'nt-msg', 'nt-img'].forEach(function (id) { g(id).addEventListener('input', prev); });
+    g('nt-pick').addEventListener('change', function () {
+      var o = this.options[this.selectedIndex];
+      g('nt-cid').value = this.value;
+      if (!this.value) return;
+      g('nt-title').value = 'Novo ' + (o.dataset.type === 'Série' ? 'série' : (o.dataset.type || 'título').toLowerCase()) + ': ' + o.dataset.title;
+      if (o.dataset.type === 'Série') g('nt-title').value = 'Nova série: ' + o.dataset.title;
+      if (!g('nt-msg').value) g('nt-msg').value = 'Já disponível no site. Aproveite!';
+      g('nt-link').value = o.dataset.link; g('nt-img').value = o.dataset.img;
+      prev();
+    });
+    var tpls = {
+      novo: function () { g('nt-pick').focus(); g('nt-pick-f').scrollIntoView({ block: 'center', behavior: 'smooth' }); },
+      manut: function () { g('nt-pick').value = ''; g('nt-cid').value = ''; g('nt-title').value = 'Manutenção programada'; g('nt-msg').value = 'O site pode ficar fora do ar por alguns minutos para melhorias. Obrigado pela paciência!'; g('nt-link').value = ''; g('nt-img').value = ''; g('nt-days').value = '1'; prev(); },
+      aviso: function () { g('nt-pick').value = ''; g('nt-cid').value = ''; g('nt-title').value = ''; g('nt-msg').value = ''; g('nt-link').value = ''; g('nt-img').value = ''; prev(); g('nt-title').focus(); }
+    };
+    $$('[data-tpl]').forEach(function (b) { b.addEventListener('click', function () { tpls[b.dataset.tpl](); }); });
+    prev();
+  }
+
   // Aba "Importar o que falta"
   var nfData = document.getElementById('nf-data');
   if (nfData) {
