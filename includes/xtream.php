@@ -174,7 +174,7 @@ function xtream_sync_catalog(): array
         if ($key !== '') $localTitleCounts[$content['type'] . ':' . $key] = ($localTitleCounts[$content['type'] . ':' . $key] ?? 0) + 1;
     }
 
-    $matchItem = static function (array $content, array $byTmdb, array $byTitle, string $idField, array &$used): ?array {
+    $matchItem = static function (array $content, array $byTmdb, array $byTitle, string $idField, array &$used, array $localTitleCounts): ?array {
         $tmdb = (int)($content['tmdb_id'] ?? 0);
         if ($tmdb > 0 && isset($byTmdb[$tmdb])) {
             $candidate = $byTmdb[$tmdb];
@@ -183,6 +183,7 @@ function xtream_sync_catalog(): array
         }
         $title = xtream_normalize_title((string)($content['title'] ?? ''));
         if ($title === '' || empty($byTitle[$title])) return null;
+        if (($localTitleCounts[(string)$content['type'] . ':' . $title] ?? 0) !== 1) return null;
         $localYear = (int)($content['year'] ?? 0);
         $candidates = array_values(array_filter($byTitle[$title], static function ($candidate) use ($localYear, $idField, &$used) {
             $id = (int)($candidate[$idField] ?? 0);
@@ -205,13 +206,13 @@ function xtream_sync_catalog(): array
     foreach ($contents as $content) {
         $cid = (int)$content['id'];
         if ($content['type'] === 'movie') {
-            $item = $matchItem($content, $vodByTmdb, $vodByTitle, 'stream_id', $usedVod);
+            $item = $matchItem($content, $vodByTmdb, $vodByTitle, 'stream_id', $usedVod, $localTitleCounts);
             if (!$item) { $unmatchedMovies++; continue; }
             $map['m:' . $cid] = ['id' => (int)$item['stream_id'], 'ext' => (string)($item['container_extension'] ?? 'mp4')];
             $movies++;
             continue;
         }
-        $seriesItem = $matchItem($content, $seriesByTmdb, $seriesByTitle, 'series_id', $usedSeries);
+        $seriesItem = $matchItem($content, $seriesByTmdb, $seriesByTitle, 'series_id', $usedSeries, $localTitleCounts);
         if (!$seriesItem) { $unmatchedSeries++; continue; }
         $seriesId = (int)$seriesItem['series_id'];
         $map['s:' . $cid] = ['id' => $seriesId];
