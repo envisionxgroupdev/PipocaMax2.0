@@ -489,6 +489,7 @@ function vjs_api_url(array $c, ?int $season = null, ?int $episode = null): ?stri
 /** O player (primeiro da lista) — ou null */
 function vjs_api_player(array $c, ?int $season = null, ?int $episode = null, ?int $episodeId = null): ?array
 {
+    if (function_exists('xtream_player') && ($xtreamPlayer = xtream_player($c, $episodeId))) return $xtreamPlayer;
     if (!vjs_api_enabled($season === null ? 'movie' : 'episode')) return null;
     $direct = vjs_api_url($c, $season, $episode);
     if ($direct === null) return null;
