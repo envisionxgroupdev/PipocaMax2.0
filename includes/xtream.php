@@ -1,7 +1,7 @@
 <?php
 /**
  * Integração Xtream Codes com o player próprio Video.js.
- * As credenciais são cifradas em repouso; a sincronização associa apenas IDs TMDB exatos.
+ * As credenciais são cifradas em repouso; a sincronização associa conteúdos existentes por TMDB ou título/ano único.
  */
 function xtream_crypto_key(): string
 {
@@ -115,39 +115,106 @@ function xtream_mapping(): array
     return is_array($map) ? $map : [];
 }
 
-/** Associa o catálogo já existente do PipocaMax por TMDB ID exato; não cria títulos duplicados. */
+/** Normaliza títulos para comparação conservadora, sem depender de idioma/capitalização. */
+function xtream_normalize_title(string $title): string
+{
+    $title = trim($title);
+    if (function_exists('iconv')) {
+        $ascii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $title);
+        if (is_string($ascii)) $title = $ascii;
+    }
+    $title = strtolower($title);
+    $title = preg_replace('/\b(19|20)\d{2}\b/', ' ', $title);
+    $title = preg_replace('/[^a-z0-9]+/', ' ', $title);
+    return trim(preg_replace('/\s+/', ' ', $title));
+}
+
+/** Obtém um ano confiável dos campos mais comuns devolvidos por servidores Xtream. */
+function xtream_item_year(array $item): int
+{
+    foreach (['year', 'releaseDate', 'release_date', 'releasedate', 'added'] as $key) {
+        $value = trim((string)($item[$key] ?? ''));
+        if ($value !== '' && preg_match('/\b((?:19|20)\d{2})\b/', $value, $m)) return (int)$m[1];
+    }
+    foreach (['name', 'title'] as $key) {
+        $value = (string)($item[$key] ?? '');
+        if (preg_match('/[\(\[\s]((?:19|20)\d{2})[\)\]\s]*$/', $value, $m)) return (int)$m[1];
+    }
+    return 0;
+}
+
+/** Associa apenas títulos já publicados. Prioriza TMDB e usa título/ano apenas quando a correspondência é única. */
 function xtream_sync_catalog(): array
 {
     @set_time_limit(180);
     $vod = xtream_api_request(['action' => 'get_vod_streams']);
     $series = xtream_api_request(['action' => 'get_series']);
     if (!is_array($vod) || !is_array($series)) throw new RuntimeException('O provedor não retornou o catálogo VOD/séries no formato esperado.');
-    $vodByTmdb = []; $seriesByTmdb = [];
-    foreach ($vod as $item) {
-        if (!is_array($item)) continue;
-        $tmdb = (int)($item['tmdb'] ?? $item['tmdb_id'] ?? 0);
-        $id = (int)($item['stream_id'] ?? 0);
-        if ($tmdb > 0 && $id > 0 && !isset($vodByTmdb[$tmdb])) $vodByTmdb[$tmdb] = $item;
-    }
-    foreach ($series as $item) {
-        if (!is_array($item)) continue;
-        $tmdb = (int)($item['tmdb'] ?? $item['tmdb_id'] ?? 0);
-        $id = (int)($item['series_id'] ?? 0);
-        if ($tmdb > 0 && $id > 0 && !isset($seriesByTmdb[$tmdb])) $seriesByTmdb[$tmdb] = $item;
+
+    $indexItems = static function (array $items, string $idField): array {
+        $byTmdb = []; $byTitle = [];
+        foreach ($items as $item) {
+            if (!is_array($item)) continue;
+            $id = (int)($item[$idField] ?? 0);
+            if ($id < 1) continue;
+            $tmdb = (int)($item['tmdb'] ?? $item['tmdb_id'] ?? 0);
+            if ($tmdb > 0 && !isset($byTmdb[$tmdb])) $byTmdb[$tmdb] = $item;
+            $title = xtream_normalize_title((string)($item['name'] ?? $item['title'] ?? ''));
+            if ($title !== '') $byTitle[$title][] = $item;
+        }
+        return [$byTmdb, $byTitle];
+    };
+    [$vodByTmdb, $vodByTitle] = $indexItems($vod, 'stream_id');
+    [$seriesByTmdb, $seriesByTitle] = $indexItems($series, 'series_id');
+
+    $contents = q_all("SELECT id, type, title, year, tmdb_id FROM contents WHERE status = 'published'");
+    $localTitleCounts = [];
+    foreach ($contents as $content) {
+        $key = xtream_normalize_title((string)$content['title']);
+        if ($key !== '') $localTitleCounts[$content['type'] . ':' . $key] = ($localTitleCounts[$content['type'] . ':' . $key] ?? 0) + 1;
     }
 
-    $map = []; $movies = 0; $shows = 0; $episodes = 0;
-    $contents = q_all("SELECT id, type, tmdb_id FROM contents WHERE status = 'published' AND tmdb_id IS NOT NULL AND tmdb_id > 0");
+    $matchItem = static function (array $content, array $byTmdb, array $byTitle, string $idField, array &$used, array $localTitleCounts): ?array {
+        $tmdb = (int)($content['tmdb_id'] ?? 0);
+        if ($tmdb > 0 && isset($byTmdb[$tmdb])) {
+            $candidate = $byTmdb[$tmdb];
+            $id = (int)($candidate[$idField] ?? 0);
+            if ($id > 0 && !isset($used[$id])) { $used[$id] = true; return $candidate; }
+        }
+        $title = xtream_normalize_title((string)($content['title'] ?? ''));
+        if ($title === '' || empty($byTitle[$title])) return null;
+        if (($localTitleCounts[(string)$content['type'] . ':' . $title] ?? 0) !== 1) return null;
+        $localYear = (int)($content['year'] ?? 0);
+        $candidates = array_values(array_filter($byTitle[$title], static function ($candidate) use ($localYear, $idField, &$used) {
+            $id = (int)($candidate[$idField] ?? 0);
+            if ($id < 1 || isset($used[$id])) return false;
+            $providerYear = xtream_item_year($candidate);
+            if ($localYear > 0 && $providerYear > 0) return $localYear === $providerYear;
+            return true;
+        }));
+        if (count($candidates) !== 1) return null;
+        $candidate = $candidates[0];
+        $providerYear = xtream_item_year($candidate);
+        // Sem ano dos dois lados, só aceita título que não esteja duplicado no catálogo local.
+        if (($localYear < 1 || $providerYear < 1) && count($byTitle[$title]) !== 1) return null;
+        $used[(int)$candidate[$idField]] = true;
+        return $candidate;
+    };
+
+    $map = []; $movies = 0; $shows = 0; $episodes = 0; $unmatchedMovies = 0; $unmatchedSeries = 0;
+    $usedVod = []; $usedSeries = [];
     foreach ($contents as $content) {
-        $cid = (int)$content['id']; $tmdb = (int)$content['tmdb_id'];
-        if ($content['type'] === 'movie' && isset($vodByTmdb[$tmdb])) {
-            $item = $vodByTmdb[$tmdb];
+        $cid = (int)$content['id'];
+        if ($content['type'] === 'movie') {
+            $item = $matchItem($content, $vodByTmdb, $vodByTitle, 'stream_id', $usedVod, $localTitleCounts);
+            if (!$item) { $unmatchedMovies++; continue; }
             $map['m:' . $cid] = ['id' => (int)$item['stream_id'], 'ext' => (string)($item['container_extension'] ?? 'mp4')];
             $movies++;
             continue;
         }
-        if ($content['type'] === 'movie' || !isset($seriesByTmdb[$tmdb])) continue;
-        $seriesItem = $seriesByTmdb[$tmdb]; $seriesId = (int)$seriesItem['series_id'];
+        $seriesItem = $matchItem($content, $seriesByTmdb, $seriesByTitle, 'series_id', $usedSeries, $localTitleCounts);
+        if (!$seriesItem) { $unmatchedSeries++; continue; }
+        $seriesId = (int)$seriesItem['series_id'];
         $map['s:' . $cid] = ['id' => $seriesId];
         $shows++;
         $info = xtream_api_request(['action' => 'get_series_info', 'series_id' => $seriesId]);
@@ -173,9 +240,11 @@ function xtream_sync_catalog(): array
     }
     set_setting('xtream_mapping', json_encode($map, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     set_setting('xtream_last_sync', date('Y-m-d H:i:s'));
-    return ['movies' => $movies, 'series' => $shows, 'episodes' => $episodes, 'total' => count($map)];
+    return [
+        'movies' => $movies, 'series' => $shows, 'episodes' => $episodes, 'total' => count($map),
+        'unmatched_movies' => $unmatchedMovies, 'unmatched_series' => $unmatchedSeries,
+    ];
 }
-
 function xtream_player(array $content, ?int $episodeId = null): ?array
 {
     if (setting('xtream_on', '0') !== '1') return null;

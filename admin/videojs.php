@@ -20,7 +20,7 @@ if (is_post()) {
             } elseif ($xtreamAction === 'sync') {
                 xtream_test_connection();
                 $stats = xtream_sync_catalog();
-                flash('success', 'Sincronização concluída: ' . $stats['movies'] . ' filmes, ' . $stats['series'] . ' séries e ' . $stats['episodes'] . ' episódios associados.');
+                flash('success', 'Sincronização concluída: ' . $stats['movies'] . ' filmes, ' . $stats['series'] . ' séries e ' . $stats['episodes'] . ' episódios associados. Sem correspondência: ' . $stats['unmatched_movies'] . ' filmes e ' . $stats['unmatched_series'] . ' séries.');
             } else {
                 throw new RuntimeException('Ação Xtream inválida.');
             }
@@ -105,7 +105,7 @@ admin_header('Player próprio', 'videojs');
   <p class="muted small">No modo JSON o site busca o link na sua API (sem expor a API no navegador). Se deixar o campo vazio, ele procura sozinho em <code>url</code>, <code>file</code>, <code>src</code>, <code>link</code>, <code>data.url</code>, <code>sources.0.file</code>…</p>
 
   <h3 class="sub-title">Conectar Xtream Codes API</h3>
-  <p class="muted small">Informe o endereço base do painel Xtream, usuário e senha. O PipocaMax consulta o catálogo e associa os títulos já cadastrados usando o TMDB ID exato.</p>
+  <p class="muted small">Informe o endereço base do painel Xtream, usuário e senha. O PipocaMax consulta o catálogo e associa somente títulos já cadastrados: primeiro pelo TMDB ID e, como alternativa, por título e ano quando a correspondência for única. Não importa conteúdos novos.</p>
   <label class="toggle-row"><div><b>Ativar Xtream no player próprio</b><small>Quando houver correspondência, o Video.js usará o stream Xtream antes dos outros players.</small></div><input type="checkbox" name="xtream_on" value="1" <?= setting('xtream_on', '0') === '1' ? 'checked' : '' ?>><span class="switch-ui"></span></label>
   <div class="cols">
     <label class="field"><span>Servidor (URL base)</span><input name="xtream_server" value="<?= e(xtream_server()) ?>" placeholder="http://servidor.com:8080" autocomplete="url"></label>
@@ -120,7 +120,7 @@ admin_header('Player próprio', 'videojs');
     <button class="btn" type="submit" name="xtream_action" value="test">Testar conexão</button>
     <button class="btn btn-red" type="submit" name="xtream_action" value="sync">Sincronizar catálogo</button>
   </div>
-  <p class="muted small">A sincronização não cria títulos: associa filmes, séries e episódios que já existem no PipocaMax, somente quando encontra o mesmo TMDB ID. Última sincronização: <b><?= e(setting('xtream_last_sync') ?: 'Ainda não realizada') ?></b>. Associações atuais: <b><?= count(xtream_mapping()) ?></b>.</p>
+  <p class="muted small">A sincronização não cria títulos: associa filmes, séries e episódios que já existem no PipocaMax, por TMDB ID ou por título/ano quando a correspondência for única. Última sincronização: <b><?= e(setting('xtream_last_sync') ?: 'Ainda não realizada') ?></b>. Associações atuais: <b><?= count(xtream_mapping()) ?></b>.</p>
 
   <h3 class="sub-title">Aparência</h3>
   <div class="cols">
