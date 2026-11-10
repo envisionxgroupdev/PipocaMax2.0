@@ -64,16 +64,22 @@ function xtream_api_request(array $params = []): array
     $url = $server . '/player_api.php?' . http_build_query($query, '', '&', PHP_QUERY_RFC3986);
     $ch = curl_init($url);
     curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => false,
+        CURLOPT_RETURNTRANSFER => false, CURLOPT_FOLLOWLOCATION => false,
         CURLOPT_CONNECTTIMEOUT => 8, CURLOPT_TIMEOUT => 35,
         CURLOPT_PROTOCOLS => CURLPROTO_HTTP | CURLPROTO_HTTPS,
         CURLOPT_HTTPHEADER => ['Accept: application/json', 'User-Agent: PipocaMax-Xtream/1.0'],
     ]);
-    $body = curl_exec($ch);
+    $body = '';
+    curl_setopt($ch, CURLOPT_WRITEFUNCTION, function ($handle, string $chunk) use (&$body): int {
+        if (strlen($body) + strlen($chunk) > 30 * 1024 * 1024) return 0;
+        $body .= $chunk;
+        return strlen($chunk);
+    });
+    $ok = curl_exec($ch);
     $status = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
     curl_close($ch);
-    if (!is_string($body)) throw new RuntimeException('Falha ao conectar ao servidor Xtream: ' . $error);
+    if ($ok !== true) throw new RuntimeException(str_contains($error, 'aborted') ? 'A resposta do catálogo ultrapassou 30 MB. Reduza o catálogo no provedor ou sincronize em partes.' : 'Falha ao conectar ao servidor Xtream: ' . $error);
     if ($status < 200 || $status >= 300) throw new RuntimeException('O servidor Xtream respondeu HTTP ' . $status . '.');
     $data = json_decode($body, true);
     if (!is_array($data)) throw new RuntimeException('A resposta do servidor não é um JSON válido.');
