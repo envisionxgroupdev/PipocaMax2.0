@@ -454,12 +454,79 @@ function api_has_episode_players(): bool
     return (bool)parse_player_templates((string)setting('episode_player_templates'));
 }
 
+/**
+ * Player próprio ligado a uma API de vídeo (Painel › Player próprio).
+ * Aparece em primeiro em todos os filmes/episódios quando ativado e com o link preenchido.
+ */
+function vjs_api_enabled(string $which): bool
+{
+    return setting('vjs_api_on', '1') === '1' && trim((string)setting($which === 'movie' ? 'vjs_api_movie' : 'vjs_api_episode')) !== '';
+}
+
+function vjs_api_vars(array $c, ?int $season = null, ?int $episode = null): array
+{
+    $v = ['tmdb_id' => $c['tmdb_id'] ?? '', 'imdb_id' => $c['imdb_id'] ?? '', 'id' => $c['content_id'] ?? ($c['id'] ?? ''), 'slug' => $c['slug'] ?? ''];
+    if ($season !== null) {
+        $v += ['temporada' => $season, 'episodio' => $episode, 'temporada2' => str_pad((string)$season, 2, '0', STR_PAD_LEFT), 'episodio2' => str_pad((string)$episode, 2, '0', STR_PAD_LEFT)];
+    }
+    return $v;
+}
+
+/** Monta o link da API para um filme/episódio (null se faltar algum dado, ex.: sem IMDb) */
+function vjs_api_url(array $c, ?int $season = null, ?int $episode = null): ?string
+{
+    $tpl = trim((string)setting($season === null ? 'vjs_api_movie' : 'vjs_api_episode'));
+    if ($tpl === '') return null;
+    $vars = vjs_api_vars($c, $season, $episode);
+    preg_match_all('/\{(\w+)\}/', $tpl, $m);
+    foreach ($m[1] as $var) {
+        if (array_key_exists($var, $vars) && ($vars[$var] === null || $vars[$var] === '')) return null;
+    }
+    $u = fill_player_template($tpl, $vars);
+    return preg_match('~^https?://~i', $u) ? $u : null;
+}
+
+/** O player (primeiro da lista) — ou null */
+function vjs_api_player(array $c, ?int $season = null, ?int $episode = null, ?int $episodeId = null): ?array
+{
+    if (!vjs_api_enabled($season === null ? 'movie' : 'episode')) return null;
+    $direct = vjs_api_url($c, $season, $episode);
+    if ($direct === null) return null;
+    $json = setting('vjs_api_mode', 'direct') === 'json';
+    $cid = (int)($c['content_id'] ?? ($c['id'] ?? 0));
+    return [
+        'id' => -100, 'name' => setting('vjs_api_name') ?: 'Player Pipoca', 'kind' => 'videojs', 'audio' => setting('vjs_api_audio') ?: '', 'quality' => '',
+        'url' => $json ? site_url(url('api.php')) . '?action=vjs_src&c=' . $cid . ($episodeId ? '&e=' . $episodeId : '') : $direct,
+        'resolve' => $json, 'test' => setting('vjs_api_test', '1') === '1',
+    ];
+}
+
+/** Pega o link do vídeo dentro da resposta JSON da API (ex.: "url", "data.file", "sources.0.file") */
+function vjs_api_extract(string $body, string $field): ?string
+{
+    $body = trim($body);
+    if (preg_match('~^https?://\S+$~i', $body)) return $body; // a API devolveu o link puro
+    $j = json_decode($body, true);
+    if (!is_array($j)) return null;
+    $paths = $field !== '' ? [$field] : ['url', 'file', 'src', 'link', 'mp4', 'video', 'data.url', 'data.file', 'data.link', 'sources.0.file', 'sources.0.src', 'sources.0.url', 'result.url'];
+    foreach ($paths as $path) {
+        $v = $j;
+        foreach (explode('.', $path) as $k) {
+            if (!is_array($v) || !array_key_exists($k, $v)) { $v = null; break; }
+            $v = $v[$k];
+        }
+        if (is_string($v) && preg_match('~^https?://~i', trim($v))) return trim($v);
+    }
+    return null;
+}
+
 /** Players públicos (sem expor o que não precisa) para o front */
 /** Opções do player próprio (Video.js) — Painel › Player próprio */
 function vjs_defaults(): array
 {
     return ['color' => '#e50914', 'skip' => 10, 'rates' => 1, 'resume' => 1, 'next' => 1, 'next_seconds' => 8, 'doubletap' => 1,
-        'pip' => 1, 'autoplay' => 1, 'poster' => 1, 'wm_text' => '', 'wm_img' => '', 'wm_pos' => 'tr', 'wm_opacity' => 60, 'error_msg' => ''];
+        'pip' => 1, 'autoplay' => 1, 'poster' => 1, 'wm_text' => '', 'wm_img' => '', 'wm_pos' => 'tr', 'wm_opacity' => 60, 'error_msg' => '',
+        'test_msg' => 'Este player está em teste. Se não funcionar, escolha outro player acima.'];
 }
 function vjs_config(): array
 {
@@ -479,7 +546,7 @@ function players_for_front(array $players): array
         'kind' => $p['kind'],
         'audio' => $p['audio'],
         'quality' => $p['quality'],
-    ], $players));
+    ] + (!empty($p['resolve']) ? ['resolve' => 1] : []) + (!empty($p['test']) ? ['test' => 1] : []), $players));
 }
 
 function json_out($data, int $code = 200): void

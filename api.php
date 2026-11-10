@@ -26,6 +26,7 @@ switch ($action) {
             json_out(['error' => 'Episódio não encontrado.'], 404);
         }
         $players = array_merge(
+            array_filter([vjs_api_player($ep, (int)$ep['season_number'], (int)$ep['episode_number'], (int)$ep['id'])]),
             api_players_episode($ep, (int)$ep['season_number'], (int)$ep['episode_number']),
             q_all('SELECT * FROM players WHERE episode_id = ? ORDER BY sort, id', [$epId])
         );
@@ -36,6 +37,27 @@ switch ($action) {
             'name' => $ep['name'],
             'players' => players_for_front($players),
         ]);
+
+    case 'vjs_src':
+        // Busca na sua API o link do vídeo (.mp4/.m3u8) do player próprio
+        if (setting('require_login') === '1' && !current_user()) json_out(['error' => 'Entre na sua conta para assistir.'], 401);
+        $cid = in_int('c'); $eid = in_int('e');
+        $c = q_one("SELECT id, tmdb_id, imdb_id, slug FROM contents WHERE id = ? AND (status = 'published' OR ? = 1)", [$cid, is_admin() ? 1 : 0]);
+        if (!$c) json_out(['error' => 'Título não encontrado.'], 404);
+        $season = $episode = null;
+        if ($eid) {
+            $e = q_one('SELECT e.episode_number, s.season_number FROM episodes e JOIN seasons s ON s.id = e.season_id WHERE e.id = ? AND e.content_id = ?', [$eid, $cid]);
+            if (!$e) json_out(['error' => 'Episódio não encontrado.'], 404);
+            $season = (int)$e['season_number']; $episode = (int)$e['episode_number'];
+        }
+        $apiUrl = vjs_api_url($c, $season, $episode);
+        if (!$apiUrl) json_out(['error' => 'Vídeo indisponível neste player.'], 404);
+        $src = cache_remember('vjs_' . md5($apiUrl), 300, function () use ($apiUrl) {
+            try { return vjs_api_extract(tv_http_get($apiUrl), trim((string)setting('vjs_api_field'))) ?? ''; }
+            catch (Throwable $e) { return ''; }
+        });
+        if ($src === '') json_out(['error' => 'Vídeo indisponível neste player. Tente outro.'], 404);
+        json_out(['url' => $src]);
 
     case 'notif_seen':
         if (!is_post()) json_out(['error' => 'Método inválido'], 405);

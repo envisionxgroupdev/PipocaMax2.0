@@ -69,6 +69,22 @@ try {
             tv_update_source($src['id'], ['last' => time(), 'count' => count($rows), 'error' => '']);
             json_out(['ok' => true, 'removed' => $removed]);
 
+        case 'vjs_test':
+            $cid = in_int('c');
+            $c = q_one('SELECT id, type, tmdb_id, imdb_id, slug FROM contents WHERE id = ?', [$cid]);
+            if (!$c) json_out(['error' => 'Título não encontrado.']);
+            $season = $episode = null;
+            if ($c['type'] !== 'movie') {
+                $e = q_one('SELECT e.episode_number, s.season_number FROM episodes e JOIN seasons s ON s.id = e.season_id WHERE e.content_id = ? ORDER BY s.season_number, e.episode_number LIMIT 1', [$cid]);
+                [$season, $episode] = $e ? [(int)$e['season_number'], (int)$e['episode_number']] : [1, 1];
+            }
+            $apiUrl = vjs_api_url($c, $season, $episode);
+            if (!$apiUrl) json_out(['error' => 'Preencha (e salve) o link da API' . ($season ? ' para episódios' : ' para filmes') . ' — ou este título não tem o dado que o link usa (ex.: IMDb).']);
+            if (setting('vjs_api_mode', 'direct') !== 'json') json_out(['api' => $apiUrl, 'url' => $apiUrl, 'ep' => $season ? "T{$season}E{$episode}" : '']);
+            try { $body = tv_http_get($apiUrl); } catch (Throwable $e) { json_out(['api' => $apiUrl, 'error' => 'A API não respondeu: ' . $e->getMessage()]); }
+            $src = vjs_api_extract($body, trim((string)setting('vjs_api_field')));
+            json_out($src ? ['api' => $apiUrl, 'url' => $src, 'ep' => $season ? "T{$season}E{$episode}" : ''] : ['api' => $apiUrl, 'error' => 'Não achei o link do vídeo na resposta. Início da resposta: ' . mb_substr(trim($body), 0, 160)]);
+
         case 'auto_log':
             if (!is_post()) json_out(['error' => 'Método inválido'], 405);
             csrf_check();

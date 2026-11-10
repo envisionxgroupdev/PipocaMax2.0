@@ -491,3 +491,4 @@ a.bell-item:hover { background: #1c1c1c; }
 }
 .search:not(.open) input:not(:focus) { padding: 0; border-width: 0; }
 
+.server em.beta { background: #f5b301; color: #000; font-weight: 800; }

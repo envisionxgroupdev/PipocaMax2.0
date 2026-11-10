@@ -48,10 +48,10 @@ $players = [];
 $seasons = [];
 $episodesBySeason = [];
 if ($isMovie) {
-    $players = $canWatch ? array_merge(api_players_movie($c), q_all('SELECT * FROM players WHERE content_id = ? ORDER BY sort, id', [$id])) : [];
+    $players = $canWatch ? array_merge(array_filter([vjs_api_player($c)]), api_players_movie($c), q_all('SELECT * FROM players WHERE content_id = ? ORDER BY sort, id', [$id])) : [];
 } else {
     $seasons = q_all('SELECT * FROM seasons WHERE content_id = ? ORDER BY season_number', [$id]);
-    $apiEpisodes = api_has_episode_players() && ($c['tmdb_id'] || $c['imdb_id']);
+    $apiEpisodes = (api_has_episode_players() || vjs_api_enabled('episode')) && ($c['tmdb_id'] || $c['imdb_id']);
     $eps = q_all(
         'SELECT e.id, e.season_id, e.episode_number, e.name, e.overview, e.still, e.runtime, e.air_date,
                 (SELECT COUNT(*) FROM players p WHERE p.episode_id = e.id) AS nplayers
@@ -159,11 +159,12 @@ require __DIR__ . '/includes/header.php';
     </div>
     <?php if ($players): ?>
       <div class="servers" data-servers>
-        <?php foreach ($players as $i => $p): ?>
-          <button class="server<?= $i === 0 ? ' active' : '' ?>" data-player='<?= e(json_encode(players_for_front([$p])[0], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>'>
+        <?php $si = 0; foreach ($players as $p): $fp = players_for_front([$p])[0] ?? null; if (!$fp) continue; ?>
+          <button class="server<?= $si++ === 0 ? ' active' : '' ?>" data-player='<?= e(json_encode($fp, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>'>
             <?= icon('play') ?> <span><?= e($p['name']) ?></span>
             <?php if ($p['audio']): ?><em><?= e($p['audio']) ?></em><?php endif; ?>
             <?php if ($p['quality']): ?><em class="q"><?= e($p['quality']) ?></em><?php endif; ?>
+            <?php if (!empty($p['test'])): ?><em class="beta">TESTE</em><?php endif; ?>
           </button>
         <?php endforeach; ?>
       </div>

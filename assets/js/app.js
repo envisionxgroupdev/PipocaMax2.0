@@ -228,9 +228,17 @@
       return;
     }
     if (p.kind === 'videojs') {
-      // Player próprio; se não carregar, usa o player simples do navegador
-      var fb = { url: p.url, kind: /\.m3u8($|\?)/i.test(p.url) ? 'hls' : 'video' };
-      loadPmPlayer().then(function (P) { return P.play(box, p, PM.vjs || {}); }).catch(function () { playNative(box, fb); });
+      var go = function (pp) {
+        // Player próprio; se não carregar, usa o player simples do navegador
+        var fb = { url: pp.url, kind: /\.m3u8($|\?)/i.test(pp.url) ? 'hls' : 'video' };
+        loadPmPlayer().then(function (P) { return P.play(box, pp, PM.vjs || {}); }).catch(function () { playNative(box, fb); });
+      };
+      if (!p.resolve) { go(p); return; }
+      // Link vem da sua API: pede ao site o endereço do vídeo
+      fetch(p.url, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) {
+        if (!j.url) { box.innerHTML = '<div class="player-msg">' + esc(j.error || 'Vídeo indisponível neste player. Tente outro.') + '</div>'; return; }
+        go({ url: j.url, kind: 'videojs', test: p.test });
+      }).catch(function () { box.innerHTML = '<div class="player-msg">Vídeo indisponível neste player. Tente outro.</div>'; });
       return;
     }
     playNative(box, p);
@@ -408,7 +416,7 @@
           srv.innerHTML = j.players.map(function (p, i) {
             return '<button class="server' + (i === 0 ? ' active' : '') + '" data-player="' + esc(JSON.stringify(p)) + '">' +
               '<svg class="ico" viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor"/></svg> <span>' + esc(p.name) + '</span>' +
-              (p.audio ? '<em>' + esc(p.audio) + '</em>' : '') + (p.quality ? '<em class="q">' + esc(p.quality) + '</em>' : '') + '</button>';
+              (p.audio ? '<em>' + esc(p.audio) + '</em>' : '') + (p.quality ? '<em class="q">' + esc(p.quality) + '</em>' : '') + (p.test ? '<em class="beta">TESTE</em>' : '') + '</button>';
           }).join('');
           bindServers(srv, box, true);
         })

@@ -15,12 +15,24 @@ if (is_post()) {
     $c['wm_pos'] = in_array(in_str('wm_pos'), ['tr', 'tl', 'br', 'bl'], true) ? in_str('wm_pos') : 'tr';
     $c['wm_opacity'] = max(10, min(100, in_int('wm_opacity', 60)));
     $c['error_msg'] = mb_substr(in_str('error_msg'), 0, 160);
+    $c['test_msg'] = mb_substr(in_str('test_msg'), 0, 160);
+    // API de vídeo (fica só no servidor)
+    set_setting('vjs_api_on', !empty($_POST['api_on']) ? '1' : '0');
+    set_setting('vjs_api_test', !empty($_POST['api_test']) ? '1' : '0');
+    set_setting('vjs_api_name', mb_substr(in_str('api_name'), 0, 40) ?: 'Player Pipoca');
+    set_setting('vjs_api_audio', mb_substr(in_str('api_audio'), 0, 30));
+    set_setting('vjs_api_movie', mb_substr(trim((string)($_POST['api_movie'] ?? '')), 0, 500));
+    set_setting('vjs_api_episode', mb_substr(trim((string)($_POST['api_episode'] ?? '')), 0, 500));
+    set_setting('vjs_api_mode', in_str('api_mode') === 'json' ? 'json' : 'direct');
+    set_setting('vjs_api_field', mb_substr(in_str('api_field'), 0, 80));
     set_setting('vjs_config', json_encode($c, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     flash('success', 'Configurações do player salvas.');
     redirect('admin/videojs.php');
 }
 
 $cfg = vjs_config();
+$apiOn = setting('vjs_api_on', '1') === '1';
+$testTitles = q_all("SELECT id, title, type, year, tmdb_id, imdb_id FROM contents WHERE status = 'published' ORDER BY id DESC LIMIT 100");
 $nUse = (int)q_val("SELECT COUNT(*) FROM players WHERE kind = 'videojs'") + (int)q_val("SELECT COUNT(*) FROM channels WHERE kind = 'videojs'");
 $tog = function (string $k, string $title, string $help) use ($cfg) {
     echo '<label class="toggle-row"><div><b>' . e($title) . '</b><small>' . e($help) . '</small></div><input type="checkbox" name="' . $k . '" value="1"' . (!empty($cfg[$k]) ? ' checked' : '') . '><span class="switch-ui"></span></label>';
@@ -30,13 +42,35 @@ admin_header('Player próprio', 'videojs');
 <section class="panel">
   <div class="panel-head"><h2><?= icon('play') ?> Player próprio (Video.js)</h2></div>
   <p class="muted">Este é o seu player, feito com o <a href="https://videojs.org" target="_blank" rel="noopener">Video.js</a> e com a cara do Pipoca Max. Ele toca links diretos de vídeo (<code>.mp4</code>) e streaming (<code>.m3u8</code>).
-    <b>Os players que você já tem não mudam.</b> Para usar este, adicione um player e escolha o tipo <b>"Player próprio (Video.js)"</b> — em filmes, episódios ou canais de TV.</p>
+    <b>Os players que você já tem não mudam.</b> Ative abaixo com o link da sua API para ele aparecer em primeiro em todos os filmes e episódios — ou, num título específico, adicione um player do tipo <b>"Player próprio (Video.js)"</b>.</p>
   <p class="muted small">Players usando o player próprio agora: <b><?= $nUse ?></b></p>
 </section>
 
 <div class="cols vjs-cols">
 <form method="post" class="panel stack">
   <?= csrf_field() ?>
+  <h3 class="sub-title">Ativar no site (sua API de vídeo)</h3>
+  <p class="muted small">Com o link da API preenchido, o player próprio aparece <b>em primeiro</b> em todos os filmes e episódios. Os outros players continuam logo depois.</p>
+  <label class="toggle-row"><div><b>Player próprio ativado</b><small>Mostra o player próprio em primeiro nos filmes e episódios.</small></div><input type="checkbox" name="api_on" value="1" <?= $apiOn ? 'checked' : '' ?>><span class="switch-ui"></span></label>
+  <label class="toggle-row"><div><b>Mostrar aviso "em teste"</b><small>Etiqueta TESTE no botão e um aviso dentro do player.</small></div><input type="checkbox" name="api_test" value="1" <?= setting('vjs_api_test', '1') === '1' ? 'checked' : '' ?>><span class="switch-ui"></span></label>
+  <label class="field"><span>Texto do aviso</span><input name="test_msg" value="<?= e($cfg['test_msg']) ?>" maxlength="160"></label>
+  <div class="cols">
+    <label class="field"><span>Nome do player</span><input name="api_name" value="<?= e(setting('vjs_api_name') ?: 'Player Pipoca') ?>" maxlength="40"></label>
+    <label class="field"><span>Áudio (opcional)</span><input name="api_audio" value="<?= e(setting('vjs_api_audio')) ?>" maxlength="30" placeholder="Dublado" list="audios"></label>
+  </div>
+  <label class="field"><span>Link da API para filmes</span><input name="api_movie" value="<?= e(setting('vjs_api_movie')) ?>" placeholder="https://sua-api.com/filme/{tmdb_id}"></label>
+  <label class="field"><span>Link da API para episódios</span><input name="api_episode" value="<?= e(setting('vjs_api_episode')) ?>" placeholder="https://sua-api.com/serie/{tmdb_id}/{temporada}/{episodio}"></label>
+  <p class="muted small">Variáveis: <code>{tmdb_id}</code> <code>{imdb_id}</code> <code>{id}</code> <code>{slug}</code> — e nos episódios <code>{temporada}</code> <code>{episodio}</code> <code>{temporada2}</code> <code>{episodio2}</code> (com zero: 01, 02…).</p>
+  <div class="cols">
+    <label class="field"><span>O link da API devolve</span>
+      <select name="api_mode">
+        <option value="direct" <?= setting('vjs_api_mode', 'direct') === 'direct' ? 'selected' : '' ?>>O próprio vídeo (.mp4 / .m3u8)</option>
+        <option value="json" <?= setting('vjs_api_mode') === 'json' ? 'selected' : '' ?>>Um JSON com o link do vídeo</option>
+      </select></label>
+    <label class="field"><span>Campo do link no JSON (opcional)</span><input name="api_field" value="<?= e(setting('vjs_api_field')) ?>" placeholder="ex: url, data.file, sources.0.file"></label>
+  </div>
+  <p class="muted small">No modo JSON o site busca o link na sua API (sem expor a API no navegador). Se deixar o campo vazio, ele procura sozinho em <code>url</code>, <code>file</code>, <code>src</code>, <code>link</code>, <code>data.url</code>, <code>sources.0.file</code>…</p>
+
   <h3 class="sub-title">Aparência</h3>
   <div class="cols">
     <label class="field"><span>Cor principal</span><input type="color" name="color" value="<?= e($cfg['color']) ?>" data-vjs-live></label>
@@ -81,6 +115,14 @@ admin_header('Player próprio', 'videojs');
     <input id="vjs-test-url" class="grow" placeholder="https://…/video.mp4">
     <button type="button" class="btn btn-red" id="vjs-test"><?= icon('play') ?> Testar</button>
   </div>
+  <div class="form-row">
+    <select id="vjs-test-title" class="grow">
+      <option value="">— ou testar a sua API com um título —</option>
+      <?php foreach ($testTitles as $t): ?><option value="<?= (int)$t['id'] ?>"><?= e($t['title']) ?><?= $t['year'] ? ' (' . (int)$t['year'] . ')' : '' ?> — <?= e(type_label($t['type'])) ?></option><?php endforeach; ?>
+    </select>
+    <button type="button" class="btn" id="vjs-test-api">Testar API</button>
+  </div>
+  <p class="muted small" id="vjs-api-msg"></p>
   <div class="player vjs-preview" data-player-box id="vjs-box"><div class="player-msg">A prévia aparece aqui.</div></div>
 </section>
 </div>

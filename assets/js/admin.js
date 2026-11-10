@@ -154,6 +154,16 @@
       window.PMPlayer.play(box, { url: u }, readCfg()).catch(function () { box.innerHTML = '<div class="player-msg">Não foi possível carregar o Video.js.</div>'; });
     };
     vjsBtn.addEventListener('click', runTest);
+    document.getElementById('vjs-test-api').addEventListener('click', function () {
+      var cid = document.getElementById('vjs-test-title').value, msg = document.getElementById('vjs-api-msg');
+      if (!cid) { msg.textContent = 'Escolha um título.'; return; }
+      msg.textContent = 'Consultando a API…';
+      ajax('vjs_test', { c: cid }, 'GET').then(function (j) {
+        if (j.error) { msg.textContent = (j.api ? 'API: ' + j.api + ' — ' : '') + j.error; return; }
+        msg.textContent = (j.ep ? j.ep + ' · ' : '') + 'Vídeo: ' + j.url;
+        document.getElementById('vjs-test-url').value = j.url; runTest();
+      }).catch(function () { msg.textContent = 'Erro ao testar.'; });
+    });
     document.getElementById('vjs-test-url').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); runTest(); } });
   }
 
