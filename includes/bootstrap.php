@@ -103,6 +103,7 @@ array_walk_recursive($_POST, function (&$v) {
 
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/xtream.php';
 require_once __DIR__ . '/auth.php';
 require_once __DIR__ . '/tmdb.php';
 require_once __DIR__ . '/autoimport.php';
@@ -212,5 +213,10 @@ if ((int)setting('db_version', '1') < 9) {
     q("ALTER TABLE players MODIFY kind ENUM('embed','video','hls','videojs') NOT NULL DEFAULT 'embed'");
     q("ALTER TABLE channels MODIFY kind ENUM('embed','video','hls','videojs') NOT NULL DEFAULT 'hls'");
     set_setting('db_version', '9');
+}
+if ((int)setting('db_version', '1') < 10) {
+    // O mapa de associação Xtream pode conter milhares de episódios.
+    q('ALTER TABLE settings MODIFY `value` MEDIUMTEXT NULL');
+    set_setting('db_version', '10');
 }
 refresh_current_user();

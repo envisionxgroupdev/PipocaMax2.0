@@ -51,7 +51,7 @@ if ($isMovie) {
     $players = $canWatch ? array_merge(array_filter([vjs_api_player($c)]), api_players_movie($c), q_all('SELECT * FROM players WHERE content_id = ? ORDER BY sort, id', [$id])) : [];
 } else {
     $seasons = q_all('SELECT * FROM seasons WHERE content_id = ? ORDER BY season_number', [$id]);
-    $apiEpisodes = (api_has_episode_players() || vjs_api_enabled('episode')) && ($c['tmdb_id'] || $c['imdb_id']);
+    $apiEpisodes = (api_has_episode_players() || vjs_api_enabled('episode') || setting('xtream_on', '0') === '1') && ($c['tmdb_id'] || $c['imdb_id']);
     $eps = q_all(
         'SELECT e.id, e.season_id, e.episode_number, e.name, e.overview, e.still, e.runtime, e.air_date,
                 (SELECT COUNT(*) FROM players p WHERE p.episode_id = e.id) AS nplayers

@@ -17,7 +17,7 @@ switch ($action) {
         }
         $epId = in_int('id');
         $ep = q_one(
-            "SELECT e.id, e.episode_number, e.name, e.content_id, s.season_number, c.tmdb_id, c.imdb_id, c.slug
+            "SELECT e.id, e.episode_number, e.name, s.season_number, c.id AS content_id, c.tmdb_id, c.imdb_id, c.slug
              FROM episodes e JOIN seasons s ON s.id = e.season_id JOIN contents c ON c.id = e.content_id
              WHERE e.id = ? AND (c.status = 'published' OR ? = 1)",
             [$epId, is_admin() ? 1 : 0]
@@ -37,6 +37,16 @@ switch ($action) {
             'name' => $ep['name'],
             'players' => players_for_front($players),
         ]);
+
+    case 'xtream_src':
+        if (setting('require_login') === '1' && !current_user()) json_out(['error' => 'Entre na sua conta para assistir.'], 401);
+        $cid = in_int('c'); $eid = in_int('e');
+        $content = q_one("SELECT id, type FROM contents WHERE id = ? AND (status = 'published' OR ? = 1)", [$cid, is_admin() ? 1 : 0]);
+        if (!$content) json_out(['error' => 'Título não encontrado.'], 404);
+        if ($eid && !q_val('SELECT 1 FROM episodes WHERE id = ? AND content_id = ?', [$eid, $cid])) json_out(['error' => 'Episódio não encontrado.'], 404);
+        $streamUrl = xtream_resolve_stream($cid, $eid);
+        if ($streamUrl === '') json_out(['error' => 'Este conteúdo ainda não foi associado ao catálogo Xtream.'], 404);
+        json_out(['url' => $streamUrl]);
 
     case 'vjs_src':
         // Busca na sua API o link do vídeo (.mp4/.m3u8) do player próprio

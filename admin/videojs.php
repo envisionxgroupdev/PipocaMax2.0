@@ -3,6 +3,32 @@ require __DIR__ . '/_init.php';
 
 if (is_post()) {
     csrf_check();
+    $xtreamAction = in_str('xtream_action');
+    if ($xtreamAction !== '') {
+        try {
+            $server = trim(in_str('xtream_server'));
+            $server = $server !== '' ? xtream_validate_server($server) : '';
+            $user = mb_substr(in_str('xtream_username'), 0, 120);
+            if ($server === '' || $user === '') throw new RuntimeException('Preencha o endereço do servidor e o usuário Xtream.');
+            set_setting('xtream_server', $server);
+            set_setting('xtream_username', $user);
+            if (in_str('xtream_password') !== '') set_setting('xtream_password_enc', xtream_encrypt_password(in_str('xtream_password')));
+            set_setting('xtream_on', !empty($_POST['xtream_on']) ? '1' : '0');
+            if ($xtreamAction === 'test') {
+                $status = xtream_test_connection();
+                flash('success', 'Conexão Xtream confirmada. Status: ' . $status['status'] . '.');
+            } elseif ($xtreamAction === 'sync') {
+                xtream_test_connection();
+                $stats = xtream_sync_catalog();
+                flash('success', 'Sincronização concluída: ' . $stats['movies'] . ' filmes, ' . $stats['series'] . ' séries e ' . $stats['episodes'] . ' episódios associados.');
+            } else {
+                throw new RuntimeException('Ação Xtream inválida.');
+            }
+        } catch (Throwable $e) {
+            flash('error', 'Xtream Codes: ' . $e->getMessage());
+        }
+        redirect('admin/videojs.php');
+    }
     $d = vjs_defaults();
     $c = [];
     foreach (['rates', 'resume', 'next', 'doubletap', 'pip', 'autoplay', 'poster'] as $k) $c[$k] = !empty($_POST[$k]) ? 1 : 0;
@@ -25,6 +51,13 @@ if (is_post()) {
     set_setting('vjs_api_episode', mb_substr(trim((string)($_POST['api_episode'] ?? '')), 0, 500));
     set_setting('vjs_api_mode', in_str('api_mode') === 'json' ? 'json' : 'direct');
     set_setting('vjs_api_field', mb_substr(in_str('api_field'), 0, 80));
+    // Xtream Codes: a senha nunca é exibida novamente no formulário.
+    $xtreamServer = trim(in_str('xtream_server'));
+    set_setting('xtream_server', $xtreamServer !== '' ? xtream_validate_server($xtreamServer) : '');
+    set_setting('xtream_username', mb_substr(in_str('xtream_username'), 0, 120));
+    if (in_str('xtream_password') !== '') set_setting('xtream_password_enc', xtream_encrypt_password(in_str('xtream_password')));
+    set_setting('xtream_on', !empty($_POST['xtream_on']) ? '1' : '0');
+    set_setting('xtream_player_name', mb_substr(in_str('xtream_player_name'), 0, 40) ?: 'Xtream Codes');
     set_setting('vjs_config', json_encode($c, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
     flash('success', 'Configurações do player salvas.');
     redirect('admin/videojs.php');
@@ -70,6 +103,24 @@ admin_header('Player próprio', 'videojs');
     <label class="field"><span>Campo do link no JSON (opcional)</span><input name="api_field" value="<?= e(setting('vjs_api_field')) ?>" placeholder="ex: url, data.file, sources.0.file"></label>
   </div>
   <p class="muted small">No modo JSON o site busca o link na sua API (sem expor a API no navegador). Se deixar o campo vazio, ele procura sozinho em <code>url</code>, <code>file</code>, <code>src</code>, <code>link</code>, <code>data.url</code>, <code>sources.0.file</code>…</p>
+
+  <h3 class="sub-title">Conectar Xtream Codes API</h3>
+  <p class="muted small">Informe o endereço base do painel Xtream, usuário e senha. O PipocaMax consulta o catálogo e associa os títulos já cadastrados usando o TMDB ID exato.</p>
+  <label class="toggle-row"><div><b>Ativar Xtream no player próprio</b><small>Quando houver correspondência, o Video.js usará o stream Xtream antes dos outros players.</small></div><input type="checkbox" name="xtream_on" value="1" <?= setting('xtream_on', '0') === '1' ? 'checked' : '' ?>><span class="switch-ui"></span></label>
+  <div class="cols">
+    <label class="field"><span>Servidor (URL base)</span><input name="xtream_server" value="<?= e(xtream_server()) ?>" placeholder="http://servidor.com:8080" autocomplete="url"></label>
+    <label class="field"><span>Nome exibido no player</span><input name="xtream_player_name" value="<?= e(setting('xtream_player_name') ?: 'Xtream Codes') ?>" maxlength="40"></label>
+  </div>
+  <div class="cols">
+    <label class="field"><span>Usuário Xtream</span><input name="xtream_username" value="<?= e(setting('xtream_username')) ?>" autocomplete="off"></label>
+    <label class="field"><span>Senha Xtream</span><input type="password" name="xtream_password" value="" placeholder="Deixe vazio para manter a senha atual" autocomplete="new-password"></label>
+  </div>
+  <p class="muted small">Senha armazenada cifrada no banco. Atenção: o endereço final de reprodução Xtream é enviado ao navegador pelo Video.js e pode revelar as credenciais do provedor a quem estiver assistindo. Use uma conta dedicada, se possível.</p>
+  <div class="form-row">
+    <button class="btn" type="submit" name="xtream_action" value="test">Testar conexão</button>
+    <button class="btn btn-red" type="submit" name="xtream_action" value="sync">Sincronizar catálogo</button>
+  </div>
+  <p class="muted small">A sincronização não cria títulos: associa filmes, séries e episódios que já existem no PipocaMax, somente quando encontra o mesmo TMDB ID. Última sincronização: <b><?= e(setting('xtream_last_sync') ?: 'Ainda não realizada') ?></b>. Associações atuais: <b><?= count(xtream_mapping()) ?></b>.</p>
 
   <h3 class="sub-title">Aparência</h3>
   <div class="cols">
