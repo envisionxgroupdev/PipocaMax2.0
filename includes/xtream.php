@@ -115,7 +115,7 @@ function xtream_sync_catalog(): array
     @set_time_limit(180);
     $vod = xtream_api_request(['action' => 'get_vod_streams']);
     $series = xtream_api_request(['action' => 'get_series']);
-    if (!array_is_list($vod) || !array_is_list($series)) throw new RuntimeException('O provedor não retornou o catálogo VOD/séries no formato esperado.');
+    if (!is_array($vod) || !is_array($series)) throw new RuntimeException('O provedor não retornou o catálogo VOD/séries no formato esperado.');
     $vodByTmdb = []; $seriesByTmdb = [];
     foreach ($vod as $item) {
         $tmdb = (int)($item['tmdb'] ?? $item['tmdb_id'] ?? 0);
@@ -190,5 +190,5 @@ function xtream_resolve_stream(int $contentId, int $episodeId = 0): string
     $map = xtream_mapping();
     $entry = $map[$episodeId ? 'e:' . $episodeId : 'm:' . $contentId] ?? null;
     if (!is_array($entry) || empty($entry['id'])) return '';
-    return xtream_stream_url('movie', (int)$entry['id'], (string)($entry['ext'] ?? 'mp4'));
+    return xtream_stream_url($episodeId ? 'series' : 'movie', (int)$entry['id'], (string)($entry['ext'] ?? 'mp4'));
 }
