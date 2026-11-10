@@ -124,11 +124,13 @@ function xtream_sync_catalog(): array
     if (!is_array($vod) || !is_array($series)) throw new RuntimeException('O provedor não retornou o catálogo VOD/séries no formato esperado.');
     $vodByTmdb = []; $seriesByTmdb = [];
     foreach ($vod as $item) {
+        if (!is_array($item)) continue;
         $tmdb = (int)($item['tmdb'] ?? $item['tmdb_id'] ?? 0);
         $id = (int)($item['stream_id'] ?? 0);
         if ($tmdb > 0 && $id > 0 && !isset($vodByTmdb[$tmdb])) $vodByTmdb[$tmdb] = $item;
     }
     foreach ($series as $item) {
+        if (!is_array($item)) continue;
         $tmdb = (int)($item['tmdb'] ?? $item['tmdb_id'] ?? 0);
         $id = (int)($item['series_id'] ?? 0);
         if ($tmdb > 0 && $id > 0 && !isset($seriesByTmdb[$tmdb])) $seriesByTmdb[$tmdb] = $item;
