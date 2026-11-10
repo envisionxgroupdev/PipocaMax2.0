@@ -60,7 +60,7 @@ $player = ['id' => (int)$ch['id'], 'name' => $ch['name'], 'url' => $ch['url'], '
     <button class="link-btn" data-report data-channel="<?= $id ?>"><?= icon('flag') ?> Reportar problema</button>
   </div>
   <?= ad_slot('player_above') ?>
-  <div class="player" data-autoplay='<?= e(json_encode($player, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>' data-player-box></div>
+  <div class="player" data-channel data-autoplay='<?= e(json_encode($player, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>' data-player-box></div>
   <?= ad_slot('player_below') ?>
 
   <?php if ($others): ?>

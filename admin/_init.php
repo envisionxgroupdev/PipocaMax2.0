@@ -20,6 +20,7 @@ function admin_header(string $title, string $active = ''): void
         ['canais', 'canais.php', 'TV Online', 'live'],
         ['anuncios', 'anuncios.php', 'Anúncios e códigos', 'grid'],
         ['notificacoes', 'notificacoes.php', 'Notificações', 'bell'],
+        ['videojs', 'videojs.php', 'Player próprio', 'play'],
         ['usuarios', 'usuarios.php', 'Usuários', 'users'],
         ['reportes', 'reportes.php', 'Reportes', 'flag', $openReports],
         ['config', 'configuracoes.php', 'Configurações', 'settings'],
@@ -104,7 +105,7 @@ function players_editor(array $players, string $owner, int $ownerId, string $bac
           <input name="name" value="<?= e($p['name']) ?>" placeholder="Nome" class="w-name" required>
           <input name="url" value="<?= e($p['url']) ?>" placeholder="URL do player / embed / .mp4 / .m3u8" class="w-url" required>
           <select name="kind" class="w-kind">
-            <?php foreach (['embed' => 'Embed (iframe)', 'video' => 'Vídeo (MP4)', 'hls' => 'HLS (.m3u8)'] as $k => $l): ?>
+            <?php foreach (['embed' => 'Embed (iframe)', 'video' => 'Vídeo (MP4)', 'hls' => 'HLS (.m3u8)', 'videojs' => 'Player próprio (Video.js)'] as $k => $l): ?>
               <option value="<?= $k ?>" <?= $p['kind'] === $k ? 'selected' : '' ?>><?= $l ?></option>
             <?php endforeach; ?>
           </select>
@@ -132,6 +133,7 @@ function players_editor(array $players, string $owner, int $ownerId, string $bac
           <option value="embed">Embed (iframe)</option>
           <option value="video">Vídeo (MP4)</option>
           <option value="hls">HLS (.m3u8)</option>
+          <option value="videojs">Player próprio (Video.js) — .mp4 ou .m3u8</option>
         </select>
         <input name="audio" placeholder="Áudio" class="w-small" list="audios">
         <input name="quality" placeholder="Qualidade" class="w-small" list="qualities">

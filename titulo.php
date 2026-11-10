@@ -168,7 +168,7 @@ require __DIR__ . '/includes/header.php';
         <?php endforeach; ?>
       </div>
       <?= ad_slot('player_above') ?>
-      <div class="player" data-player-box>
+      <div class="player" data-player-box data-poster="<?= e(img($c['backdrop'] ?: $c['poster'], 'w1280')) ?>">
         <div class="player-cover" style="background-image:url('<?= e(img($c['backdrop'] ?: $c['poster'], 'w780')) ?>')">
           <button class="big-play" aria-label="Reproduzir"><?= icon('play') ?></button>
           <span class="player-hint">Escolha um player acima e clique para assistir</span>
@@ -193,7 +193,7 @@ require __DIR__ . '/includes/header.php';
       </div>
       <div class="servers" data-servers></div>
       <?= ad_slot('player_above') ?>
-      <div class="player" data-player-box></div>
+      <div class="player" data-player-box data-poster="<?= e(img($c['backdrop'] ?: $c['poster'], 'w1280')) ?>"></div>
       <?= ad_slot('player_below') ?>
     </div>
 

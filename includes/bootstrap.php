@@ -207,4 +207,10 @@ if ((int)setting('db_version', '1') < 8) {
     q("DELETE FROM settings WHERE `key` LIKE 'mixdrop\\_%'");
     set_setting('db_version', '8');
 }
+if ((int)setting('db_version', '1') < 9) {
+    // Novo tipo de player: "Player próprio (Video.js)". Os tipos antigos continuam iguais.
+    q("ALTER TABLE players MODIFY kind ENUM('embed','video','hls','videojs') NOT NULL DEFAULT 'embed'");
+    q("ALTER TABLE channels MODIFY kind ENUM('embed','video','hls','videojs') NOT NULL DEFAULT 'hls'");
+    set_setting('db_version', '9');
+}
 refresh_current_user();

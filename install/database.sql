@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS players (
   episode_id INT UNSIGNED NULL,
   name VARCHAR(100) NOT NULL,
   url TEXT NOT NULL,
-  kind ENUM('embed','video','hls') NOT NULL DEFAULT 'embed',
+  kind ENUM('embed','video','hls','videojs') NOT NULL DEFAULT 'embed',
   audio VARCHAR(30) NULL,
   quality VARCHAR(20) NULL,
   sort SMALLINT NOT NULL DEFAULT 0,
@@ -103,7 +103,7 @@ CREATE TABLE IF NOT EXISTS channels (
   logo VARCHAR(500) NULL,
   category VARCHAR(80) NULL,
   url TEXT NOT NULL,
-  kind ENUM('embed','video','hls') NOT NULL DEFAULT 'embed',
+  kind ENUM('embed','video','hls','videojs') NOT NULL DEFAULT 'embed',
   status ENUM('active','inactive') NOT NULL DEFAULT 'active',
   sort SMALLINT NOT NULL DEFAULT 0,
   views INT UNSIGNED NOT NULL DEFAULT 0,
@@ -159,7 +159,7 @@ INSERT IGNORE INTO settings (`key`, `value`) VALUES
 ('seo_home_title', ''),
 ('google_verification', ''),
 ('google_analytics', ''),
-('db_version', '8');
+('db_version', '9');
 
 CREATE TABLE IF NOT EXISTS notifications (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,

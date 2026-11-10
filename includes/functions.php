@@ -455,6 +455,20 @@ function api_has_episode_players(): bool
 }
 
 /** Players públicos (sem expor o que não precisa) para o front */
+/** Opções do player próprio (Video.js) — Painel › Player próprio */
+function vjs_defaults(): array
+{
+    return ['color' => '#e50914', 'skip' => 10, 'rates' => 1, 'resume' => 1, 'next' => 1, 'next_seconds' => 8, 'doubletap' => 1,
+        'pip' => 1, 'autoplay' => 1, 'poster' => 1, 'wm_text' => '', 'wm_img' => '', 'wm_pos' => 'tr', 'wm_opacity' => 60, 'error_msg' => ''];
+}
+function vjs_config(): array
+{
+    $saved = json_decode((string)setting('vjs_config', ''), true);
+    $c = array_merge(vjs_defaults(), is_array($saved) ? array_intersect_key($saved, vjs_defaults()) : []);
+    $c['v'] = substr(md5(json_encode($c) . @filemtime(PM_ROOT . '/assets/js/pmplayer.js') . @filemtime(PM_ROOT . '/assets/css/pmplayer.css')), 0, 8);
+    return $c;
+}
+
 function players_for_front(array $players): array
 {
     $players = array_filter($players, fn($p) => clean_url((string)$p['url']) !== '');

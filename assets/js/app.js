@@ -194,7 +194,25 @@
     return hlsLoading;
   }
 
+  /* ----- Player próprio (Video.js): só para players do tipo "Player próprio" ----- */
+  var pmpLoading = null;
+  function loadPmPlayer() {
+    if (window.PMPlayer) return Promise.resolve(window.PMPlayer);
+    if (!pmpLoading) {
+      pmpLoading = new Promise(function (res, rej) {
+        var s = document.createElement('script');
+        s.src = PM.base + '/assets/js/pmplayer.js?v=' + (PM.vjs && PM.vjs.v || '1');
+        s.onload = function () { window.PMPlayer ? res(window.PMPlayer) : rej(); };
+        s.onerror = rej;
+        document.head.appendChild(s);
+      });
+      pmpLoading.catch(function () { pmpLoading = null; });
+    }
+    return pmpLoading;
+  }
+
   function playIn(box, p) {
+    if (box._vjs) { try { box._vjs.dispose(); } catch (e) {} box._vjs = null; }
     if (box._hls) { box._hls.destroy(); box._hls = null; }
     box.innerHTML = '<div class="player-msg"><div class="spinner"></div></div>';
     if (!p || !/^https?:\/\//i.test(p.url || '')) { box.innerHTML = '<div class="player-msg">Player indisponível.</div>'; return; }
@@ -209,6 +227,16 @@
       box.appendChild(f);
       return;
     }
+    if (p.kind === 'videojs') {
+      // Player próprio; se não carregar, usa o player simples do navegador
+      var fb = { url: p.url, kind: /\.m3u8($|\?)/i.test(p.url) ? 'hls' : 'video' };
+      loadPmPlayer().then(function (P) { return P.play(box, p, PM.vjs || {}); }).catch(function () { playNative(box, fb); });
+      return;
+    }
+    playNative(box, p);
+  }
+
+  function playNative(box, p) {
     var v = document.createElement('video');
     v.controls = true; v.autoplay = true; v.playsInline = true;
     v.setAttribute('playsinline', '');

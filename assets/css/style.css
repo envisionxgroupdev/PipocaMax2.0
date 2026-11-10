@@ -490,3 +490,4 @@ a.bell-item:hover { background: #1c1c1c; }
   .logo-mark { width: 22px; height: 22px; }
 }
 .search:not(.open) input:not(:focus) { padding: 0; border-width: 0; }
+

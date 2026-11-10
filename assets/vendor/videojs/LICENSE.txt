@@ -1,0 +1,2 @@
+Video.js 8.24.2 — https://videojs.org
+Copyright Brightcove, Inc. Licenciado sob a Apache License 2.0 (https://www.apache.org/licenses/LICENSE-2.0).

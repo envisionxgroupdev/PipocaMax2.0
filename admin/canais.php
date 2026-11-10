@@ -65,7 +65,7 @@ if (is_post()) {
             redirect('admin/canais.php?' . ($id ? 'id=' . $id : 'novo=1'));
         }
         $kind = in_str('kind');
-        if (!in_array($kind, ['embed', 'video', 'hls'], true)) $kind = player_kind_from_url($u);
+        if (!in_array($kind, ['embed', 'video', 'hls', 'videojs'], true)) $kind = player_kind_from_url($u);
         $data = [$name, clean_url(in_str('logo'), true) ?: null, mb_substr(in_str('category'), 0, 80) ?: null, $u, $kind, in_str('status') === 'inactive' ? 'inactive' : 'active', in_int('sort')];
         if ($id) {
             q('UPDATE channels SET name = ?, logo = ?, category = ?, url = ?, kind = ?, status = ?, sort = ? WHERE id = ?', array_merge($data, [$id]));
@@ -143,7 +143,7 @@ admin_header('TV Online', 'canais');
     <label class="field span-2"><span>URL da transmissão *</span><input name="url" value="<?= e($ch['url']) ?>" required placeholder="https://…/canal.m3u8 ou link de embed"></label>
     <label class="field"><span>Tipo</span><select name="kind">
       <option value="auto">Detectar</option>
-      <?php foreach (['hls' => 'HLS (.m3u8)', 'embed' => 'Embed (iframe)', 'video' => 'Vídeo direto'] as $k => $l): ?><option value="<?= $k ?>" <?= $edit && $ch['kind'] === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?>
+      <?php foreach (['hls' => 'HLS (.m3u8)', 'embed' => 'Embed (iframe)', 'video' => 'Vídeo direto', 'videojs' => 'Player próprio (Video.js)'] as $k => $l): ?><option value="<?= $k ?>" <?= $edit && $ch['kind'] === $k ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?>
     </select></label>
     <label class="field span-2"><span>Logo (URL da imagem)</span><input name="logo" value="<?= e($ch['logo']) ?>" data-preview="pv-logo"></label>
     <label class="field"><span>Status</span><select name="status"><option value="active">Ativo</option><option value="inactive" <?= $ch['status'] === 'inactive' ? 'selected' : '' ?>>Inativo</option></select></label>

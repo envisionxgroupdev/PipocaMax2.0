@@ -469,3 +469,8 @@ input[type=checkbox] { accent-color: var(--red); width: 16px; height: 16px; }
 .ns-txt { flex: 1; min-width: 0; }
 .ns-act { display: flex; gap: 6px; }
 @media (max-width: 600px) { .notif-sent li { flex-wrap: wrap; } .notif-sent img { width: 88px; height: 50px; } .ns-act { width: 100%; justify-content: flex-end; } }
+
+/* Player próprio */
+.vjs-cols { align-items: start; }
+.vjs-preview { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 10px; overflow: hidden; margin-top: 12px; }
+.vjs-preview .player-msg { position: absolute; inset: 0; display: grid; place-items: center; color: #aaa; }

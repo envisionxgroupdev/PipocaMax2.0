@@ -134,6 +134,29 @@
     });
   }
 
+  // Player próprio: prévia com as opções do formulário
+  var vjsBtn = document.getElementById('vjs-test');
+  if (vjsBtn) {
+    var vjsForm = document.querySelector('.vjs-cols form');
+    var readCfg = function () {
+      var c = Object.assign({}, window.PM.vjs || {}), fd = new FormData(vjsForm);
+      ['rates', 'resume', 'next', 'doubletap', 'pip', 'autoplay', 'poster'].forEach(function (k) { c[k] = fd.get(k) ? 1 : 0; });
+      ['color', 'skip', 'next_seconds', 'wm_text', 'wm_img', 'wm_pos', 'wm_opacity', 'error_msg'].forEach(function (k) { c[k] = fd.get(k); });
+      return c;
+    };
+    var op = vjsForm.querySelector('[name=wm_opacity]');
+    op.addEventListener('input', function () { document.querySelector('[data-op]').textContent = op.value; });
+    var runTest = function () {
+      var u = document.getElementById('vjs-test-url').value.trim(), box = document.getElementById('vjs-box');
+      if (!/^https?:\/\//i.test(u)) { box.innerHTML = '<div class="player-msg">Cole um link começando com http.</div>'; return; }
+      if (!window.PMPlayer) { box.innerHTML = '<div class="player-msg">Carregando…</div>'; setTimeout(runTest, 400); return; }
+      if (box._vjs) { try { box._vjs.dispose(); } catch (e) {} box._vjs = null; }
+      window.PMPlayer.play(box, { url: u }, readCfg()).catch(function () { box.innerHTML = '<div class="player-msg">Não foi possível carregar o Video.js.</div>'; });
+    };
+    vjsBtn.addEventListener('click', runTest);
+    document.getElementById('vjs-test-url').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); runTest(); } });
+  }
+
   // Notificações: título do site, modelos e prévia
   var ntf = document.getElementById('notif-form');
   if (ntf) {

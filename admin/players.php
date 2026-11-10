@@ -6,7 +6,7 @@ csrf_check();
 
 $action = in_str('action');
 $back = safe_back(in_str('back'));
-$kinds = ['embed', 'video', 'hls'];
+$kinds = ['embed', 'video', 'hls', 'videojs'];
 
 $name = mb_substr(in_str('name'), 0, 100) ?: 'Player';
 $urlv = clean_url(in_str('url'));
