@@ -214,4 +214,9 @@ if ((int)setting('db_version', '1') < 9) {
     q("ALTER TABLE channels MODIFY kind ENUM('embed','video','hls','videojs') NOT NULL DEFAULT 'hls'");
     set_setting('db_version', '9');
 }
+if ((int)setting('db_version', '1') < 10) {
+    // O mapa de associação Xtream pode conter milhares de episódios.
+    q('ALTER TABLE settings MODIFY `value` MEDIUMTEXT NULL');
+    set_setting('db_version', '10');
+}
 refresh_current_user();
