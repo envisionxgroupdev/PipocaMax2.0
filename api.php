@@ -17,7 +17,7 @@ switch ($action) {
         }
         $epId = in_int('id');
         $ep = q_one(
-            "SELECT e.id, e.episode_number, e.name, e.content_id, s.season_number, c.id AS content_id, c.tmdb_id, c.imdb_id, c.slug
+            "SELECT e.id, e.episode_number, e.name, s.season_number, c.id AS content_id, c.tmdb_id, c.imdb_id, c.slug
              FROM episodes e JOIN seasons s ON s.id = e.season_id JOIN contents c ON c.id = e.content_id
              WHERE e.id = ? AND (c.status = 'published' OR ? = 1)",
             [$epId, is_admin() ? 1 : 0]
