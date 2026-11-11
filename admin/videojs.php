@@ -41,10 +41,8 @@ if (is_post()) {
     $c['wm_pos'] = in_array(in_str('wm_pos'), ['tr', 'tl', 'br', 'bl'], true) ? in_str('wm_pos') : 'tr';
     $c['wm_opacity'] = max(10, min(100, in_int('wm_opacity', 60)));
     $c['error_msg'] = mb_substr(in_str('error_msg'), 0, 160);
-    $c['test_msg'] = mb_substr(in_str('test_msg'), 0, 160);
     // API de vídeo (fica só no servidor)
     set_setting('vjs_api_on', !empty($_POST['api_on']) ? '1' : '0');
-    set_setting('vjs_api_test', !empty($_POST['api_test']) ? '1' : '0');
     set_setting('vjs_api_name', mb_substr(in_str('api_name'), 0, 40) ?: 'Player Pipoca');
     set_setting('vjs_api_audio', mb_substr(in_str('api_audio'), 0, 30));
     set_setting('vjs_api_movie', mb_substr(trim((string)($_POST['api_movie'] ?? '')), 0, 500));
@@ -85,8 +83,6 @@ admin_header('Player próprio', 'videojs');
   <h3 class="sub-title">Ativar no site (sua API de vídeo)</h3>
   <p class="muted small">Com o link da API preenchido, o player próprio aparece <b>em primeiro</b> em todos os filmes e episódios. Os outros players continuam logo depois.</p>
   <label class="toggle-row"><div><b>Player próprio ativado</b><small>Mostra o player próprio em primeiro nos filmes e episódios.</small></div><input type="checkbox" name="api_on" value="1" <?= $apiOn ? 'checked' : '' ?>><span class="switch-ui"></span></label>
-  <label class="toggle-row"><div><b>Mostrar aviso "em teste"</b><small>Etiqueta TESTE no botão e um aviso dentro do player.</small></div><input type="checkbox" name="api_test" value="1" <?= setting('vjs_api_test', '0') === '1' ? 'checked' : '' ?>><span class="switch-ui"></span></label>
-  <label class="field"><span>Texto do aviso</span><input name="test_msg" value="<?= e($cfg['test_msg']) ?>" maxlength="160"></label>
   <div class="cols">
     <label class="field"><span>Nome do player</span><input name="api_name" value="<?= e(setting('vjs_api_name') ?: 'Player Pipoca') ?>" maxlength="40"></label>
     <label class="field"><span>Áudio (opcional)</span><input name="api_audio" value="<?= e(setting('vjs_api_audio')) ?>" maxlength="30" placeholder="Dublado" list="audios"></label>

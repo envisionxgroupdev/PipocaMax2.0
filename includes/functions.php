@@ -498,7 +498,7 @@ function vjs_api_player(array $c, ?int $season = null, ?int $episode = null, ?in
     return [
         'id' => -100, 'name' => setting('vjs_api_name') ?: 'Player Pipoca', 'kind' => 'videojs', 'audio' => setting('vjs_api_audio') ?: '', 'quality' => '',
         'url' => $json ? site_url(url('api.php')) . '?action=vjs_src&c=' . $cid . ($episodeId ? '&e=' . $episodeId : '') : $direct,
-        'resolve' => $json, 'test' => setting('vjs_api_test', '0') === '1',
+        'resolve' => $json,
     ];
 }
 
@@ -526,8 +526,7 @@ function vjs_api_extract(string $body, string $field): ?string
 function vjs_defaults(): array
 {
     return ['color' => '#e50914', 'skip' => 10, 'rates' => 1, 'resume' => 1, 'next' => 1, 'next_seconds' => 8, 'doubletap' => 1,
-        'pip' => 1, 'autoplay' => 1, 'poster' => 1, 'wm_text' => '', 'wm_img' => '', 'wm_pos' => 'tr', 'wm_opacity' => 60, 'error_msg' => '',
-        'test_msg' => 'Este player está em teste. Se não funcionar, escolha outro player acima.'];
+        'pip' => 1, 'autoplay' => 1, 'poster' => 1, 'wm_text' => '', 'wm_img' => '', 'wm_pos' => 'tr', 'wm_opacity' => 60, 'error_msg' => ''];
 }
 function vjs_config(): array
 {

@@ -53,8 +53,3 @@
 .pm-wm-tr { top: 14px; right: 16px; } .pm-wm-tl { top: 14px; left: 16px; }
 .pm-wm-br { bottom: 5em; right: 16px; } .pm-wm-bl { bottom: 5em; left: 16px; }
 @media (max-width: 600px) { .pm-wm img { max-height: 26px; max-width: 100px; } .pm-wm { font-size: 12px; } }
-.pm-test { position: absolute; top: 12px; left: 12px; right: 12px; max-width: 560px; z-index: 3; display: flex; gap: 10px; align-items: center; background: rgba(0, 0, 0, .78); border: 1px solid rgba(255, 255, 255, .15); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.35; transition: opacity .4s; }
-.pm-test-tag { background: #f5b301; color: #000; font-weight: 800; font-size: 11px; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
-.pm-test button { margin-left: auto; background: none; border: 0; color: #fff; font-size: 20px; line-height: 1; cursor: pointer; padding: 0 4px; }
-.pm-test.pm-test-min { opacity: .0; pointer-events: none; }
-.vjs-pm.vjs-paused .pm-test.pm-test-min, .vjs-pm.vjs-user-active .pm-test.pm-test-min { opacity: 1; pointer-events: auto; }

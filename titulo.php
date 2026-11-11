@@ -164,7 +164,6 @@ require __DIR__ . '/includes/header.php';
             <?= icon('play') ?> <span><?= e($p['name']) ?></span>
             <?php if ($p['audio']): ?><em><?= e($p['audio']) ?></em><?php endif; ?>
             <?php if ($p['quality']): ?><em class="q"><?= e($p['quality']) ?></em><?php endif; ?>
-            <?php if (!empty($p['test'])): ?><em class="beta">TESTE</em><?php endif; ?>
           </button>
         <?php endforeach; ?>
       </div>

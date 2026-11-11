@@ -88,16 +88,6 @@
         el.appendChild(wm);
       }
 
-      // Aviso "em teste"
-      if (p.test && cfg.test_msg) {
-        var tb = document.createElement('div');
-        tb.className = 'pm-test';
-        tb.innerHTML = '<span class="pm-test-tag">TESTE</span><span>' + esc(cfg.test_msg) + '</span><button type="button" aria-label="Fechar">×</button>';
-        tb.querySelector('button').addEventListener('click', function () { tb.remove(); });
-        el.appendChild(tb);
-        setTimeout(function () { if (tb.parentNode) tb.classList.add('pm-test-min'); }, 9000);
-      }
-
       pl.on('error', function () {
         var em = el.querySelector('.vjs-modal-dialog-content');
         if (em) em.textContent = cfg.error_msg || 'Não foi possível carregar este vídeo. Tente outro player.';
