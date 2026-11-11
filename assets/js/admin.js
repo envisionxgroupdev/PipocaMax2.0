@@ -204,44 +204,73 @@
     prev();
   }
 
-  // Aba "Importar o que falta"
-  var nfData = document.getElementById('nf-data');
-  if (nfData) {
-    var NF = JSON.parse(nfData.textContent), nfType = document.getElementById('nf-type'), nfSrc = document.getElementById('nf-src');
-    var nfWhere = document.getElementById('nf-where'), nfYearF = document.getElementById('nf-year-f'), nfStatus = document.getElementById('nf-status');
-    var fillSrc = function () {
-      nfSrc.innerHTML = NF[nfType.value].map(function (s) { return '<option value="' + s.k + '">' + escH(s.l) + '</option>'; }).join('');
-      updSrc();
+  // Aba "Importar novidades": um botão só, lembra as escolhas
+  var nfBtn = document.getElementById('nf-start');
+  if (nfBtn && document.querySelector('[data-imp-type]')) {
+    var LS = function (k, v) { try { if (v === undefined) return localStorage.getItem('pm_imp_' + k); localStorage.setItem('pm_imp_' + k, v); } catch (e) {} };
+    var typeBoxes = $$('[data-imp-type]'), nfSrc = document.getElementById('nf-src'), nfStatus = document.getElementById('nf-status');
+    var nfProg = document.getElementById('nf-progress'), nfYearF = document.getElementById('nf-year-f');
+    var names = { movie: 'Filmes', series: 'Séries', anime: 'Animes' };
+    var srcMap = {
+      popular: { movie: 'popular_movies', series: 'popular_tv', anime: 'anime' },
+      top_rated: { movie: 'top_rated_movies', series: 'top_rated_tv', anime: 'anime' },
+      trending: { movie: 'trending_movies', series: 'trending_tv', anime: 'anime' },
+      now: { movie: 'now_playing', series: 'on_air', anime: 'anime' }
     };
-    var updSrc = function () {
-      var s = NF[nfType.value].filter(function (x) { return x.k === nfSrc.value; })[0] || {};
-      nfWhere.textContent = s.w ? 'Última vez: ' + s.w + '.' : '';
-      nfYearF.hidden = nfSrc.value !== 'one_year';
+    // escolhas salvas
+    var savedTypes = LS('types');
+    if (savedTypes) typeBoxes.forEach(function (c) { c.checked = savedTypes.split(',').indexOf(c.value) >= 0; });
+    var savedQty = LS('qty');
+    if (savedQty) $$('[name=imp-qty]').forEach(function (r) { r.checked = r.value === savedQty; });
+    var last = LS('last');
+    if (last) document.getElementById('nf-last').textContent = 'Última importação: ' + last + '.';
+    nfSrc.addEventListener('change', function () { nfYearF.hidden = nfSrc.value !== 'one_year'; });
+
+    var setRow = function (t, txt, cls) {
+      var r = nfProg.querySelector('[data-row="' + t + '"]');
+      if (!r) { r = document.createElement('div'); r.dataset.row = t; nfProg.appendChild(r); }
+      r.className = 'imp-row ' + (cls || '');
+      r.innerHTML = '<b>' + names[t] + '</b><span>' + escH(txt) + '</span>';
     };
-    nfType.addEventListener('change', fillSrc); nfSrc.addEventListener('change', updSrc); fillSrc();
-    var nfBtn = document.getElementById('nf-start');
-    nfBtn.addEventListener('click', function () {
-      var want = +document.getElementById('nf-want').value, type = nfType.value, src = nfSrc.value, items = [];
-      var oneYear = src === 'one_year';
+
+    var findFor = function (type, want, all) {
+      var gsrc = nfSrc.value, src = gsrc === 'all_years' || gsrc === 'one_year' ? gsrc : srcMap[gsrc][type];
+      var oneYear = gsrc === 'one_year';
       var pos = { year: oneYear ? +document.getElementById('nf-year').value : 0, page: 1 };
       var resume = !document.getElementById('nf-restart').checked && !oneYear;
-      nfBtn.disabled = true;
+      var got = 0;
       var step = function (first) {
-        nfStatus.textContent = 'Procurando títulos novos no TMDB… ' + items.length + ' de ' + want + ' encontrados' + (pos.year ? ' (ano ' + pos.year + ')' : '') + '.';
-        return ajax('find_new', { type: type, src: src, want: want - items.length, year: pos.year, page: pos.page, resume: first && resume ? '1' : '0' }).then(function (j) {
+        setRow(type, 'procurando… ' + got + ' de ' + want + (pos.year && pos.year > 1900 ? ' (' + pos.year + ')' : ''), 'busy');
+        return ajax('find_new', { type: type, src: src, want: want - got, year: pos.year, page: pos.page, resume: first && resume ? '1' : '0' }).then(function (j) {
           if (j.error) throw new Error(j.error);
-          (j.items || []).forEach(function (r) { items.push({ item: String(r.tmdb_id), type: type, label: r.title }); });
+          (j.items || []).forEach(function (r) { got++; all.push({ item: String(r.tmdb_id), type: type, label: r.title }); });
           pos = { year: j.year, page: j.page };
-          if (items.length < want && !j.done) return step(false);
-          return j.done;
+          if (got < want && !j.done) return step(false);
+          setRow(type, got ? got + ' novo(s) encontrado(s)' + (j.done ? ' — chegou ao fim' : '') : (j.done ? 'nada novo — você já tem tudo daqui' : 'nada novo'), got ? 'ok' : 'none');
+          var w = document.querySelector('[data-imp-where="' + type + '"]');
+          if (w && src === 'all_years') w.textContent = j.done ? 'Já importou todos os anos' : 'Próximos: ' + j.year + ' › página ' + j.page;
         });
       };
-      step(true).then(function (ended) {
-        nfBtn.disabled = false;
-        if (!items.length) { nfStatus.textContent = ended ? 'Nada novo: você já tem tudo dessa lista. Escolha outra fonte ou marque "Começar do início".' : 'Nenhum título novo encontrado.'; return; }
-        nfStatus.textContent = items.length + ' título(s) novo(s) encontrados' + (ended ? ' (a lista acabou).' : '.');
-        runQueue(items, { release: document.getElementById('nf-release').checked });
-      }).catch(function (e) { nfBtn.disabled = false; nfStatus.textContent = 'Erro: ' + e.message; });
+      return step(true).catch(function (e) { setRow(type, 'erro: ' + e.message, 'err'); });
+    };
+
+    nfBtn.addEventListener('click', function () {
+      var types = typeBoxes.filter(function (c) { return c.checked; }).map(function (c) { return c.value; });
+      if (!types.length) { nfStatus.textContent = 'Marque pelo menos um: Filmes, Séries ou Animes.'; return; }
+      var qty = +(document.querySelector('[name=imp-qty]:checked') || {}).value || 50;
+      LS('types', types.join(',')); LS('qty', String(qty));
+      var each = Math.floor(qty / types.length), extra = qty - each * types.length, all = [];
+      nfBtn.disabled = true; nfProg.hidden = false; nfProg.innerHTML = ''; nfStatus.textContent = '';
+      types.forEach(function (t) { setRow(t, 'na fila', ''); });
+      // um tipo por vez (não sobrecarrega a hospedagem)
+      types.reduce(function (p, t, i) { return p.then(function () { return findFor(t, each + (i < extra ? 1 : 0), all); }); }, Promise.resolve())
+        .then(function () {
+          nfBtn.disabled = false;
+          if (!all.length) { nfStatus.textContent = 'Nenhum título novo encontrado com essas opções.'; return; }
+          var d = new Date();
+          LS('last', d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) + ' — ' + all.length + ' título(s)');
+          runQueue(all, { release: document.getElementById('nf-release').checked });
+        });
     });
   }
 

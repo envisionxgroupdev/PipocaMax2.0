@@ -85,41 +85,63 @@ admin_header('Importar do TMDB', 'importar');
 <?php elseif ($aba === 'falta'):
   $counts = [];
   foreach (q_all('SELECT type, COUNT(*) n FROM contents GROUP BY type') as $c) $counts[$c['type']] = (int)$c['n'];
-  $types = ['movie' => 'Filmes', 'series' => 'Séries', 'anime' => 'Animes'];
-  $srcData = [];
+  $types = ['movie' => ['Filmes', 'film'], 'series' => ['Séries', 'series'], 'anime' => ['Animes', 'anime']];
+  $where = [];
   foreach ($types as $t => $_) {
-      foreach (import_sources($t) as $k => [$label]) {
-          $cur = json_decode((string)setting('imp_cursor_' . $t . '_' . $k, ''), true);
-          $where = '';
-          if (is_array($cur) && $k !== 'one_year') {
-              $where = !empty($cur['done']) ? 'chegou ao fim da lista' : ($k === 'all_years' ? 'parou em ' . (int)$cur['year'] . ', página ' . (int)$cur['page'] : 'parou na página ' . (int)$cur['page']);
-          }
-          $srcData[$t][] = ['k' => $k, 'l' => $label, 'w' => $where];
-      }
+      $cur = json_decode((string)setting('imp_cursor_' . $t . '_all_years', ''), true);
+      $where[$t] = !is_array($cur) ? 'Começa pelos de ' . date('Y') : (!empty($cur['done']) ? 'Já importou todos os anos' : 'Próximos: ' . (int)$cur['year'] . ' › página ' . (int)$cur['page']);
   }
 ?>
-<section class="panel">
-  <div class="panel-head"><h2>Importar o que falta</h2></div>
-  <p class="muted">Escolha o tipo e quantos títulos <b>novos</b> quer. O sistema procura sozinho no TMDB, ano por ano e página por página, <b>pula o que já está no site</b> e continua de onde parou na próxima vez.</p>
-  <div class="imp-stats">
-    <?php foreach ($types as $t => $l): ?><div><b><?= number_format($counts[$t] ?? 0, 0, ',', '.') ?></b><span><?= $l ?> no site</span></div><?php endforeach; ?>
+<section class="panel imp-easy">
+  <div class="panel-head"><h2>Importar novidades</h2></div>
+  <p class="muted">Marque o que quer e clique em <b>Importar agora</b>. O sistema busca no TMDB do ano mais novo para o mais antigo, <b>pula o que já está no site</b> e lembra onde parou — é só clicar de novo quando quiser mais.</p>
+
+  <div class="imp-types" role="group" aria-label="O que importar">
+    <?php foreach ($types as $t => [$label, $ico]): ?>
+      <label class="imp-type">
+        <input type="checkbox" value="<?= $t ?>" data-imp-type checked>
+        <span class="imp-type-box">
+          <span class="imp-type-top"><?= icon($ico) ?><b><?= $label ?></b><span class="imp-check"><?= icon('check') ?></span></span>
+          <strong><?= number_format($counts[$t] ?? 0, 0, ',', '.') ?></strong><small>no site</small>
+          <em data-imp-where="<?= $t ?>"><?= e($where[$t]) ?></em>
+        </span>
+      </label>
+    <?php endforeach; ?>
   </div>
-  <div class="imp-grid">
-    <label class="field"><span>O que importar</span>
-      <select id="nf-type"><?php foreach ($types as $t => $l): ?><option value="<?= $t ?>"><?= $l ?></option><?php endforeach; ?></select></label>
-    <label class="field"><span>De onde</span><select id="nf-src"></select><small class="muted" id="nf-where"></small></label>
-    <label class="field" id="nf-year-f" hidden><span>Ano</span><input type="number" id="nf-year" value="<?= date('Y') ?>" min="1950" max="<?= date('Y') + 1 ?>"></label>
-    <label class="field"><span>Quantos novos</span>
-      <select id="nf-want"><?php foreach ([10, 20, 50, 100, 200] as $n): ?><option <?= $n === 50 ? 'selected' : '' ?>><?= $n ?></option><?php endforeach; ?></select></label>
+
+  <div class="imp-qty">
+    <span class="muted">Quantos títulos novos (no total)</span>
+    <div class="seg" role="radiogroup">
+      <?php foreach ([20, 50, 100, 200] as $n): ?>
+        <label><input type="radio" name="imp-qty" value="<?= $n ?>" <?= $n === 50 ? 'checked' : '' ?>><span><?= $n ?></span></label>
+      <?php endforeach; ?>
+    </div>
   </div>
-  <div class="form-row">
-    <label class="check"><input type="checkbox" id="nf-release"> Marcar como lançamento</label>
-    <label class="check"><input type="checkbox" id="nf-restart"> Começar do início (ignorar onde parou)</label>
-    <span class="grow"></span>
-    <button class="btn btn-red btn-lg" id="nf-start"><?= icon('download') ?> Procurar e importar</button>
-  </div>
+
+  <button class="btn btn-red btn-lg imp-go" id="nf-start"><?= icon('download') ?> Importar agora</button>
+  <div class="imp-progress" id="nf-progress" hidden></div>
   <p class="muted small" id="nf-status"></p>
-  <script type="application/json" id="nf-data"><?= json_encode($srcData, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
+  <p class="muted small" id="nf-last"></p>
+
+  <details class="box-details imp-adv">
+    <summary><?= icon('settings') ?> Opções avançadas</summary>
+    <div class="imp-adv-body">
+      <div class="imp-grid">
+        <label class="field"><span>De onde buscar</span>
+          <select id="nf-src">
+            <option value="all_years">Todos os anos, do mais novo ao mais antigo (padrão)</option>
+            <option value="one_year">Só de um ano</option>
+            <option value="popular">Mais populares agora</option>
+            <option value="top_rated">Mais bem avaliados de todos os tempos</option>
+            <option value="trending">Em alta na semana</option>
+            <option value="now">Nos cinemas / no ar agora</option>
+          </select></label>
+        <label class="field" id="nf-year-f" hidden><span>Ano</span><input type="number" id="nf-year" value="<?= date('Y') ?>" min="1950" max="<?= date('Y') + 1 ?>"></label>
+      </div>
+      <label class="check"><input type="checkbox" id="nf-release"> Marcar os importados como lançamento</label>
+      <label class="check"><input type="checkbox" id="nf-restart"> Começar do início (voltar para <?= date('Y') ?>, para pegar lançamentos novos)</label>
+    </div>
+  </details>
 </section>
 
 <?php else: ?>
