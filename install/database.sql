@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   status ENUM('active','banned') NOT NULL DEFAULT 'active',
   avatar_color VARCHAR(10) NOT NULL DEFAULT '#e50914',
   notif_seen INT UNSIGNED NOT NULL DEFAULT 0,
+  register_ip VARCHAR(45) NULL,
   last_login DATETIME NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

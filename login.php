@@ -12,8 +12,12 @@ if (is_post()) {
     csrf_check();
     $email = mb_strtolower(in_str('email'));
     $pass = (string)($_POST['senha'] ?? '');
-    if (login_throttled()) {
+    if (sec_ip_blocked()) {
+        $error = 'Não é possível entrar a partir desta rede.';
+    } elseif (login_throttled()) {
         $error = 'Muitas tentativas. Aguarde alguns minutos e tente de novo.';
+    } elseif ($cp = captcha_check('login')) {
+        $error = $cp;
     } else {
         $u = q_one('SELECT * FROM users WHERE email = ?', [$email]);
         if (!$u || !password_verify($pass, $u['password'])) {
@@ -51,6 +55,7 @@ require __DIR__ . '/includes/header.php';
     <?php if ($error): ?><div class="alert alert-error"><?= e($error) ?></div><?php endif; ?>
     <label class="field"><span>E-mail</span><input type="email" name="email" value="<?= e($email) ?>" required autocomplete="email" autofocus></label>
     <label class="field"><span>Senha</span><input type="password" name="senha" required autocomplete="current-password"></label>
+    <?= captcha_widget('login') ?>
     <button class="btn btn-red btn-block">Entrar</button>
     <?php if (setting('allow_register') === '1'): ?>
       <p class="auth-alt">Novo por aqui? <a href="<?= e(page_url('cadastro')) ?>">Crie sua conta</a>.</p>

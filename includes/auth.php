@@ -49,19 +49,26 @@ function logout_user(): void
 
 function client_ip(): string
 {
-    return substr((string)($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0'), 0, 45);
+    static $ip = null;
+    if ($ip !== null) return $ip;
+    $ip = (string)($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+    if (function_exists('sec') && sec('cloudflare') && !empty($_SERVER['HTTP_CF_CONNECTING_IP']) && filter_var($_SERVER['HTTP_CF_CONNECTING_IP'], FILTER_VALIDATE_IP)) {
+        $ip = $_SERVER['HTTP_CF_CONNECTING_IP'];
+    }
+    return $ip = substr($ip, 0, 45);
 }
 
-/** Bloqueia o IP por 15 minutos depois de 8 senhas erradas (protege contra força bruta) */
+/** Bloqueia o IP por alguns minutos depois de várias senhas erradas (Painel › Segurança) */
 function login_throttled(): bool
 {
     $r = q_one('SELECT attempts, last_attempt FROM login_attempts WHERE ip = ?', [client_ip()]);
     if (!$r) return false;
-    if (strtotime($r['last_attempt']) < time() - 900) {
+    $mins = function_exists('sec') ? max(1, (int)sec('login_minutes')) : 15;
+    if (strtotime($r['last_attempt']) < time() - $mins * 60) {
         q('DELETE FROM login_attempts WHERE ip = ?', [client_ip()]);
         return false;
     }
-    return (int)$r['attempts'] >= 8;
+    return (int)$r['attempts'] >= (function_exists('sec') ? max(3, (int)sec('login_max')) : 8);
 }
 
 function login_failed(): void

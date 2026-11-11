@@ -111,6 +111,7 @@ require_once __DIR__ . '/ads.php';
 require_once __DIR__ . '/tvimport.php';
 require_once __DIR__ . '/notifications.php';
 require_once __DIR__ . '/schema.php';
+require_once __DIR__ . '/security.php';
 
 try {
     db();
@@ -223,5 +224,19 @@ if ((int)setting('db_version', '1') < 11) {
     // Tira o aviso "em teste" do player próprio
     set_setting('vjs_api_test', '0');
     set_setting('db_version', '11');
+}
+if ((int)setting('db_version', '1') < 12) {
+    // Proteções de cadastro: eventos por IP e IP de cadastro dos usuários
+    q("CREATE TABLE IF NOT EXISTS security_events (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        ip VARCHAR(45) NOT NULL,
+        action VARCHAR(20) NOT NULL,
+        created_at DATETIME NOT NULL,
+        KEY idx_ip_action (ip, action, created_at),
+        KEY idx_created (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    try { q('ALTER TABLE users ADD COLUMN register_ip VARCHAR(45) NULL'); } catch (Throwable $e) {}
+    try { q('CREATE INDEX idx_users_regip ON users (register_ip, created_at)'); } catch (Throwable $e) {}
+    set_setting('db_version', '12');
 }
 refresh_current_user();

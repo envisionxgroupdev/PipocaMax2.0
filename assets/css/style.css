@@ -491,3 +491,5 @@ a.bell-item:hover { background: #1c1c1c; }
 }
 .search:not(.open) input:not(:focus) { padding: 0; border-width: 0; }
 
+.hp-field { position: absolute !important; left: -9999px !important; width: 1px; height: 1px; overflow: hidden; }
+.captcha-box { margin: 4px 0 14px; min-height: 65px; }

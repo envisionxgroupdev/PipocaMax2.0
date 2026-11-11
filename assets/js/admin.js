@@ -134,6 +134,13 @@
     });
   }
 
+  // Segurança: mostra as chaves só quando há CAPTCHA
+  var secCap = document.getElementById('sec-captcha');
+  if (secCap) {
+    var updCap = function () { $$('[data-captcha-keys]').forEach(function (el) { el.hidden = secCap.value === 'none'; }); };
+    secCap.addEventListener('change', updCap); updCap();
+  }
+
   // Player próprio: prévia com as opções do formulário
   var vjsBtn = document.getElementById('vjs-test');
   if (vjsBtn) {
