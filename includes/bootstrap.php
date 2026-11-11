@@ -219,4 +219,9 @@ if ((int)setting('db_version', '1') < 10) {
     q('ALTER TABLE settings MODIFY `value` MEDIUMTEXT NULL');
     set_setting('db_version', '10');
 }
+if ((int)setting('db_version', '1') < 11) {
+    // Tira o aviso "em teste" do player próprio
+    set_setting('vjs_api_test', '0');
+    set_setting('db_version', '11');
+}
 refresh_current_user();

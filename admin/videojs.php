@@ -85,7 +85,7 @@ admin_header('Player próprio', 'videojs');
   <h3 class="sub-title">Ativar no site (sua API de vídeo)</h3>
   <p class="muted small">Com o link da API preenchido, o player próprio aparece <b>em primeiro</b> em todos os filmes e episódios. Os outros players continuam logo depois.</p>
   <label class="toggle-row"><div><b>Player próprio ativado</b><small>Mostra o player próprio em primeiro nos filmes e episódios.</small></div><input type="checkbox" name="api_on" value="1" <?= $apiOn ? 'checked' : '' ?>><span class="switch-ui"></span></label>
-  <label class="toggle-row"><div><b>Mostrar aviso "em teste"</b><small>Etiqueta TESTE no botão e um aviso dentro do player.</small></div><input type="checkbox" name="api_test" value="1" <?= setting('vjs_api_test', '1') === '1' ? 'checked' : '' ?>><span class="switch-ui"></span></label>
+  <label class="toggle-row"><div><b>Mostrar aviso "em teste"</b><small>Etiqueta TESTE no botão e um aviso dentro do player.</small></div><input type="checkbox" name="api_test" value="1" <?= setting('vjs_api_test', '0') === '1' ? 'checked' : '' ?>><span class="switch-ui"></span></label>
   <label class="field"><span>Texto do aviso</span><input name="test_msg" value="<?= e($cfg['test_msg']) ?>" maxlength="160"></label>
   <div class="cols">
     <label class="field"><span>Nome do player</span><input name="api_name" value="<?= e(setting('vjs_api_name') ?: 'Player Pipoca') ?>" maxlength="40"></label>

@@ -498,7 +498,7 @@ function vjs_api_player(array $c, ?int $season = null, ?int $episode = null, ?in
     return [
         'id' => -100, 'name' => setting('vjs_api_name') ?: 'Player Pipoca', 'kind' => 'videojs', 'audio' => setting('vjs_api_audio') ?: '', 'quality' => '',
         'url' => $json ? site_url(url('api.php')) . '?action=vjs_src&c=' . $cid . ($episodeId ? '&e=' . $episodeId : '') : $direct,
-        'resolve' => $json, 'test' => setting('vjs_api_test', '1') === '1',
+        'resolve' => $json, 'test' => setting('vjs_api_test', '0') === '1',
     ];
 }
 
