@@ -24,6 +24,7 @@ function admin_header(string $title, string $active = ''): void
         ['usuarios', 'usuarios.php', 'Usuários', 'users'],
         ['seguranca', 'seguranca.php', 'Segurança', 'shield'],
         ['seo', 'seo.php', 'SEO', 'search'],
+        ['dominio', 'dominio.php', 'Domínio', 'globe'],
         ['reportes', 'reportes.php', 'Reportes', 'flag', $openReports],
         ['config', 'configuracoes.php', 'Configurações', 'settings'],
     ];

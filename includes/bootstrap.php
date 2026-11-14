@@ -113,6 +113,7 @@ require_once __DIR__ . '/notifications.php';
 require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/seo.php';
+require_once __DIR__ . '/domain.php';
 
 try {
     db();
@@ -127,6 +128,7 @@ try {
 }
 
 load_settings();
+domain_enforce(); // domínio oficial + HTTPS (Painel › Domínio)
 // Atualiza o banco automaticamente quando sai versão nova
 if ((int)setting('db_version', '1') < 2) {
     q("CREATE TABLE IF NOT EXISTS login_attempts (

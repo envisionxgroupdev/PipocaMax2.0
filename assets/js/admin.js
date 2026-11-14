@@ -134,6 +134,36 @@
     });
   }
 
+  // ===== Domínio =====
+  var domTest = document.querySelector('[data-domain-test]');
+  if (domTest) {
+    domTest.querySelector('button').addEventListener('click', function () {
+      var out = domTest.querySelector('[data-out]'), done = false;
+      out.textContent = 'Testando…'; out.style.color = '';
+      window.__pmDomainPing = function (tok, https) {
+        done = true;
+        if (tok === domTest.dataset.token) { out.textContent = '✓ O domínio novo já abre este site' + (https ? ' com HTTPS.' : '.') + ' Pode ativar.'; out.style.color = '#46d369'; }
+        else { out.textContent = '✕ O domínio abre, mas é OUTRO site. Confira para onde ele aponta na Hostinger.'; out.style.color = '#ff6b6b'; }
+      };
+      var sc = document.createElement('script');
+      sc.src = domTest.dataset.url + '&t=' + Date.now();
+      sc.onerror = function () { if (!done) { out.textContent = '✕ Ainda não abriu. Confira se o domínio aponta para a Hostinger e se o SSL está ativo (pode levar algumas horas).'; out.style.color = '#ff6b6b'; } };
+      document.head.appendChild(sc);
+      setTimeout(function () { if (!done && out.textContent === 'Testando…') { out.textContent = '✕ Sem resposta. Tente de novo em alguns minutos.'; out.style.color = '#ff6b6b'; } }, 12000);
+    });
+  }
+  var domList = document.querySelector('[data-dom-list]');
+  if (domList) {
+    var getL = function () { try { return JSON.parse(localStorage.getItem('pm_dom_list') || '{}'); } catch (e) { return {}; } };
+    var st = getL();
+    $$('input[data-k]', domList).forEach(function (c) {
+      c.checked = !!st[c.dataset.k];
+      c.addEventListener('change', function () { var s = getL(); s[c.dataset.k] = c.checked ? 1 : 0; try { localStorage.setItem('pm_dom_list', JSON.stringify(s)); } catch (e) {} });
+    });
+    document.querySelector('[data-dom-reset]').addEventListener('click', function () { try { localStorage.removeItem('pm_dom_list'); } catch (e) {} $$('input[data-k]', domList).forEach(function (c) { c.checked = false; }); });
+  }
+  $$('[data-confirm-click]').forEach(function (b) { b.addEventListener('click', function (e) { if (!confirm(b.dataset.confirmClick)) e.preventDefault(); }); });
+
   // ===== SEO =====
   var seoFill = function (tpl, v) {
     var out = String(tpl || '').replace(/\{(\w+)\}/g, function (m, k) { return v[k] != null ? v[k] : ''; });

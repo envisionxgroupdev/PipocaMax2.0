@@ -549,3 +549,21 @@ input[type=checkbox] { accent-color: var(--red); width: 16px; height: 16px; }
 .seo-tpl { border-top: 1px solid var(--line); padding-top: 4px; margin-top: 16px; }
 .seo-save { position: sticky; bottom: 0; padding: 14px 0 4px; background: linear-gradient(transparent, var(--panel, #161616) 35%); }
 .seo-box-body { padding: 14px 16px; }
+
+/* Domínio */
+.dom-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+.dom-cards > div { background: #141414; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; min-width: 0; }
+.dom-cards small { display: block; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+.dom-cards b { display: block; overflow-wrap: anywhere; }
+.dom-cards .pill { margin-top: 6px; display: inline-block; }
+.dom-cols { align-items: start; }
+.dom-cols h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 4px; font-size: 1.1rem; }
+.dom-step { width: 26px; height: 26px; border-radius: 50%; background: #e50914; color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 800; flex-shrink: 0; }
+.dom-test { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.dom-list { margin: 10px 0 14px; padding: 0; list-style: none; counter-reset: d; display: grid; gap: 6px; }
+.dom-list li label { display: flex; gap: 12px; align-items: flex-start; padding: 10px 12px; border-radius: 8px; background: #141414; cursor: pointer; }
+.dom-list input { margin-top: 3px; accent-color: #e50914; width: 17px; height: 17px; flex-shrink: 0; }
+.dom-list label > span > b { display: block; }
+.dom-list small { display: block; color: #aaa; font-size: 13px; margin-top: 2px; line-height: 1.45; }
+.dom-list input:checked + span > b { text-decoration: line-through; color: #888; }
+@media (max-width: 760px) { .dom-cards { grid-template-columns: 1fr; } }

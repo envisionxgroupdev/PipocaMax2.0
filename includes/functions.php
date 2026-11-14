@@ -195,6 +195,9 @@ function unique_channel_slug(string $name, int $excludeId = 0): string
 /** Endereço completo do site (https://seusite.com) */
 function site_url(string $path = ''): string
 {
+    if (function_exists('domain_main') && ($main = domain_main()) !== '') {
+        return domain_scheme() . '://' . $main . ($path === '' ? BASE_URL . '/' : $path);
+    }
     $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
         || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
         || (($_SERVER['SERVER_PORT'] ?? '') == 443);

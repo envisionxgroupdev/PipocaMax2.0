@@ -48,6 +48,14 @@ switch ($action) {
         if ($streamUrl === '') json_out(['error' => 'Este conteúdo ainda não foi associado ao catálogo Xtream.'], 404);
         json_out(['url' => $streamUrl]);
 
+    case 'domain_ping':
+        // Usado pelo Painel › Domínio para provar que o domínio novo abre ESTE site
+        header('Content-Type: application/javascript; charset=utf-8');
+        header('Cache-Control: no-store');
+        header('Access-Control-Allow-Origin: *');
+        echo 'window.__pmDomainPing&&window.__pmDomainPing(' . json_encode(domain_token()) . ',' . json_encode(domain_request_https()) . ');';
+        exit;
+
     case 'vjs_src':
         // Busca na sua API o link do vídeo (.mp4/.m3u8) do player próprio
         if (setting('require_login') === '1' && !current_user()) json_out(['error' => 'Entre na sua conta para assistir.'], 401);
