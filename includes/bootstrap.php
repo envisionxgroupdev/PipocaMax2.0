@@ -112,6 +112,7 @@ require_once __DIR__ . '/tvimport.php';
 require_once __DIR__ . '/notifications.php';
 require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/security.php';
+require_once __DIR__ . '/seo.php';
 
 try {
     db();
@@ -238,5 +239,11 @@ if ((int)setting('db_version', '1') < 12) {
     try { q('ALTER TABLE users ADD COLUMN register_ip VARCHAR(45) NULL'); } catch (Throwable $e) {}
     try { q('CREATE INDEX idx_users_regip ON users (register_ip, created_at)'); } catch (Throwable $e) {}
     set_setting('db_version', '12');
+}
+if ((int)setting('db_version', '1') < 13) {
+    // SEO por título (opcional): título e descrição personalizados
+    try { q('ALTER TABLE contents ADD COLUMN seo_title VARCHAR(160) NULL'); } catch (Throwable $e) {}
+    try { q('ALTER TABLE contents ADD COLUMN seo_desc VARCHAR(320) NULL'); } catch (Throwable $e) {}
+    set_setting('db_version', '13');
 }
 refresh_current_user();

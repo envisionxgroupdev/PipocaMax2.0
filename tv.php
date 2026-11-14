@@ -15,16 +15,17 @@ $page = max(1, in_int('p', 1));
 $totalCh = (int)q_val("SELECT COUNT(*) FROM channels WHERE $where", $params);
 $channels = q_all("SELECT * FROM channels WHERE $where ORDER BY sort, name LIMIT $perPage OFFSET " . (($page - 1) * $perPage), $params);
 
-$pageTitle = 'TV Online';
+$fullTitle = seo_fill(seo_tpl('tv_title'), ['pagina' => seo_page_suffix($page)]);
+$pageTitle = $fullTitle;
 $canonical = site_url(page_url('tv'));
-$metaDescription = 'Canais de TV ao vivo no ' . site_name() . '.';
+$metaDescription = seo_cut_desc(seo_fill(seo_tpl('tv_desc'), []));
 $noindex = $cat !== '';
 $chList = [];
 foreach ($channels as $i => $ch) {
     $chList[] = ['@type' => 'ListItem', 'position' => ($page - 1) * $perPage + $i + 1, 'url' => site_url(channel_url($ch)), 'name' => $ch['name']];
 }
 $jsonLd = [
-    schema_page('CollectionPage', $canonical, 'TV Online — canais ao vivo', $metaDescription, $chList ? ['@id' => $canonical . '#canais'] : null),
+    schema_page('CollectionPage', $canonical, $fullTitle, $metaDescription, $chList ? ['@id' => $canonical . '#canais'] : null),
     $chList ? ['@type' => 'ItemList', '@id' => $canonical . '#canais', 'name' => 'Canais de TV ao vivo', 'numberOfItems' => $totalCh, 'itemListElement' => $chList] : null,
     schema_breadcrumb([['Início', site_url()], ['TV Online', $canonical]]),
 ];

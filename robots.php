@@ -13,5 +13,8 @@ echo "User-agent: *\n";
 foreach (['/admin/', '/install/', '/cron.php', '/includes/', '/api.php', '/busca', '/busca.php', '/login', '/login.php', '/cadastro', '/cadastro.php', '/conta', '/conta.php', '/minha-lista', '/minha-lista.php', '/logout.php'] as $d) {
     echo 'Disallow: ' . $b . $d . "\n";
 }
-echo "Allow: /\n\n";
+echo "Allow: /\n";
+$extra = trim((string)setting('robots_extra'));
+if ($extra !== '') echo "\n" . str_replace("\r", '', $extra) . "\n";
+echo "\n";
 echo 'Sitemap: ' . site_url(pretty_urls() ? url('sitemap.xml') : url('sitemap.php')) . "\n";

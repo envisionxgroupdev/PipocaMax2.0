@@ -49,6 +49,8 @@ if (is_post()) {
                     'is_release' => isset($_POST['is_release']) ? 1 : 0,
                     'featured' => isset($_POST['featured']) ? 1 : 0,
                     'status' => in_str('status') === 'draft' ? 'draft' : 'published',
+                    'seo_title' => mb_substr(in_str('seo_title'), 0, 160) ?: null,
+                    'seo_desc' => mb_substr(in_str('seo_desc'), 0, 320) ?: null,
                 ];
                 $wantSlug = slugify(in_str('slug') !== '' ? in_str('slug') : (($c['slug'] ?? '') ?: $title));
                 $data['slug'] = unique_slug($wantSlug, $type, null, $c ? (int)$id : 0);
@@ -375,6 +377,19 @@ admin_header($isNew ? 'Novo ' . mb_strtolower(type_label($type)) : $c['title'], 
       <label class="check"><input type="checkbox" name="is_release" value="1" <?= $c['is_release'] ? 'checked' : '' ?>> Mostrar em <b>Lançamentos</b></label>
       <label class="check"><input type="checkbox" name="featured" value="1" <?= $c['featured'] ? 'checked' : '' ?>> Mostrar no <b>destaque</b> do início</label>
     </div>
+    <?php
+      $seoTpls = ['movie' => [seo_tpl('movie_title'), seo_tpl('movie_desc')], 'series' => [seo_tpl('series_title'), seo_tpl('series_desc')], 'anime' => [seo_tpl('anime_title'), seo_tpl('anime_desc')]];
+      $seoUrl = site_url(url(['movie' => 'filme', 'series' => 'serie', 'anime' => 'anime'][$type] . '/' . (($c['slug'] ?? '') ?: 'nome-do-titulo')));
+    ?>
+    <details class="box-details span-3 seo-box" <?= !empty($c['seo_title']) || !empty($c['seo_desc']) ? 'open' : '' ?> data-seo-tpls='<?= e(json_encode($seoTpls, JSON_UNESCAPED_UNICODE)) ?>' data-site="<?= e(site_name()) ?>">
+      <summary><?= icon('search') ?> SEO deste título (como aparece no Google)</summary>
+      <div class="seo-box-body">
+        <div class="gprev"><small><?= e($seoUrl) ?></small><b data-gp-title></b><span data-gp-desc></span></div>
+        <p class="muted small">Por padrão usa o modelo de <a href="<?= e(url('admin/seo.php')) ?>">Painel › SEO</a>. Preencha abaixo só se quiser algo diferente para este título (pode usar as mesmas variáveis, como <code>{titulo}</code> e <code>{ano}</code>).</p>
+        <label class="field"><span>Título personalizado <em class="muted" data-count="seo_title"></em></span><input name="seo_title" maxlength="160" value="<?= e($c['seo_title'] ?? '') ?>" placeholder="(usar o modelo)"></label>
+        <label class="field"><span>Descrição personalizada <em class="muted" data-count="seo_desc"></em></span><textarea name="seo_desc" rows="2" maxlength="320" placeholder="(usar o modelo)"><?= e($c['seo_desc'] ?? '') ?></textarea></label>
+      </div>
+    </details>
     <div class="span-3"><button class="btn btn-red btn-lg"><?= $isNew ? 'Criar título' : 'Salvar alterações' ?></button></div>
   </form>
 </section>

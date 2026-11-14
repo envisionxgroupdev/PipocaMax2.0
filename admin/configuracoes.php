@@ -7,57 +7,9 @@ if (is_post()) {
     switch ($section) {
         case 'geral':
             set_setting('site_name', mb_substr(in_str('site_name'), 0, 60) ?: 'Pipoca Max');
-            set_setting('site_description', mb_substr(in_str('site_description'), 0, 300));
             set_setting('footer_text', mb_substr(in_str('footer_text'), 0, 300));
             set_setting('items_per_page', (string)max(12, min(120, in_int('items_per_page', 30))));
             break;
-        case 'seo':
-            set_setting('pretty_urls', isset($_POST['pretty_urls']) ? '1' : '0');
-            set_setting('seo_home_title', mb_substr(in_str('seo_home_title'), 0, 70));
-            $gv = in_str('google_verification');
-            if (preg_match('/content="([^"]+)"/', $gv, $m)) $gv = $m[1]; // aceita a tag inteira
-            set_setting('google_verification', preg_replace('/[^A-Za-z0-9_\-]/', '', $gv));
-            foreach (['bing_verification', 'yandex_verification'] as $vk) {
-                $v = in_str($vk);
-                if (preg_match('/content="([^"]+)"/', $v, $m)) $v = $m[1]; // aceita a tag inteira
-                set_setting($vk, preg_replace('/[^A-Za-z0-9_\-]/', '', $v));
-            }
-            $ga = strtoupper(in_str('google_analytics'));
-            set_setting('google_analytics', preg_match('/^G-[A-Z0-9]+$/', $ga) ? $ga : '');
-            break;
-        case 'checksitemap':
-            if (setting('maintenance') === '1') {
-                flash('info', 'O site está em modo manutenção, por isso o sitemap fica pausado de propósito (o Google entende que é temporário e não tira suas páginas da busca). Desative a manutenção e verifique de novo.');
-                redirect('admin/configuracoes.php#seo');
-            }
-            // Testa o sitemap do jeito que o Google acessa
-            $smUrl = site_url(pretty_urls() ? url('sitemap.xml') : url('sitemap.php'));
-            $body = false; $code = 0;
-            if (function_exists('curl_init')) {
-                $ch = curl_init($smUrl);
-                curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_FOLLOWLOCATION => true, CURLOPT_USERAGENT => 'Mozilla/5.0 (compatible; Googlebot/2.1)']);
-                $body = curl_exec($ch);
-                $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-                curl_close($ch);
-            }
-            if ($body !== false && $code === 200 && str_starts_with(ltrim((string)$body), '<?xml')) {
-                libxml_use_internal_errors(true);
-                $xml = simplexml_load_string((string)$body);
-                if ($xml !== false) {
-                    $n = isset($xml->url) ? count($xml->url) : count($xml->sitemap);
-                    flash('success', "Sitemap funcionando! O Google vai encontrar $n endereço(s) em $smUrl");
-                } else {
-                    flash('error', 'O sitemap abriu, mas o conteúdo veio com defeito. Me mande um print desta mensagem.');
-                }
-            } elseif ($body !== false && $code === 404 && pretty_urls()) {
-                flash('error', "O endereço $smUrl deu \"não encontrado\" (404): o servidor não está aplicando os links amigáveis. Envie ao Google o endereço " . site_url(url('sitemap.php')) . ' enquanto isso.');
-            } elseif ($body !== false) {
-                flash('error', "O sitemap respondeu com erro $code. Me mande um print desta mensagem.");
-            } else {
-                flash('info', 'Não consegui testar daqui (a hospedagem bloqueia o site de acessar ele mesmo). O sitemap tem ' . ((int)q_val("SELECT COUNT(*) FROM contents WHERE status = 'published'") + 6) . ' endereços. Confira pelo Google Search Console.');
-            }
-            redirect('admin/configuracoes.php#seo');
-
         case 'clearlog':
             @unlink(PM_LOG);
             break;
@@ -96,7 +48,7 @@ admin_header('Configurações', 'config');
 <div class="settings">
   <nav class="settings-nav">
     <a href="#geral"><?= icon('settings') ?> Geral</a>
-    <a href="#seo"><?= icon('search') ?> SEO e Google</a>
+    <a href="<?= e(url('admin/seo.php')) ?>"><?= icon('search') ?> SEO <small class="muted">(nova aba)</small></a>
     <a href="#acesso"><?= icon('users') ?> Acesso e cadastro</a>
     <a href="#manutencao"><?= icon('wrench') ?> Manutenção</a>
     <a href="#tmdb"><?= icon('database') ?> API do TMDB</a>
@@ -111,34 +63,15 @@ admin_header('Configurações', 'config');
         <label class="field"><span>Nome do site</span><input name="site_name" value="<?= e(site_name()) ?>" required></label>
         <label class="field"><span>Itens por página</span><input type="number" min="12" max="120" name="items_per_page" value="<?= e(setting('items_per_page', 30)) ?>"></label>
         <span></span>
-        <label class="field span-3"><span>Descrição (aparece no Google e na página inicial)</span><input name="site_description" value="<?= e(setting('site_description')) ?>"></label>
         <label class="field span-3"><span>Texto do rodapé</span><input name="footer_text" value="<?= e(setting('footer_text')) ?>"></label>
         <div class="span-3"><button class="btn btn-red">Salvar</button></div>
       </form>
     </section>
 
     <section class="panel" id="seo">
-      <div class="panel-head"><h2>SEO e Google</h2></div>
-      <form method="post">
-        <?= csrf_field() ?><input type="hidden" name="section" value="seo">
-        <label class="toggle-row"><div><b>URLs amigáveis</b><small>Links como <code><?= e(site_url(url('filme/123-nome-do-filme'))) ?></code> em vez de <code>titulo.php?id=123</code>. Melhor para o Google. Desative se os títulos derem "página não encontrada" (servidor sem mod_rewrite).</small></div><input type="checkbox" name="pretty_urls" value="1" <?= pretty_urls() ? 'checked' : '' ?>><span class="switch-ui"></span></label>
-        <div class="form-grid">
-          <label class="field span-3"><span>Título da página inicial no Google (até 60 letras)</span><input name="seo_home_title" maxlength="70" value="<?= e(setting('seo_home_title')) ?>" placeholder="<?= e(site_name() . ' • ' . setting('site_description')) ?>"></label>
-          <label class="field span-3"><span><b>Google</b> Search Console — código de verificação (ou a tag inteira)</span><input name="google_verification" value="<?= e(setting('google_verification')) ?>" placeholder='<meta name="google-site-verification" content="...">'></label>
-          <label class="field span-3"><span><b>Bing</b> Webmaster Tools — código de verificação (ou a tag inteira)</span><input name="bing_verification" value="<?= e(setting('bing_verification')) ?>" placeholder='<meta name="msvalidate.01" content="...">'></label>
-          <label class="field span-3"><span><b>Yandex</b> Webmaster — código de verificação (ou a tag inteira)</span><input name="yandex_verification" value="<?= e(setting('yandex_verification')) ?>" placeholder='<meta name="yandex-verification" content="...">'></label>
-          <label class="field"><span>Google Analytics (ID G-XXXX)</span><input name="google_analytics" value="<?= e(setting('google_analytics')) ?>" placeholder="G-XXXXXXXXXX"></label>
-        </div>
-        <div class="help" style="margin:14px 0">
-          <b>Mapa do site para o Google:</b> <a href="<?= e(site_url(pretty_urls() ? url('sitemap.xml') : url('sitemap.php'))) ?>" target="_blank"><?= e(site_url(pretty_urls() ? url('sitemap.xml') : url('sitemap.php'))) ?></a><br>
-          Envie esse endereço no <a href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a>, no <a href="https://www.bing.com/webmasters" target="_blank" rel="noopener">Bing Webmaster Tools</a> e no <a href="https://webmaster.yandex.com" target="_blank" rel="noopener">Yandex Webmaster</a> (em Sitemaps). Ele se atualiza sozinho a cada título publicado.<br>
-          <span class="muted">Obs.: aberto no celular, o sitemap pode aparecer em branco ou como texto corrido. É normal: ele é feito para o Google ler, não para pessoas.</span>
-        </div>
-        <div class="btn-row">
-          <button class="btn btn-red">Salvar</button>
-          <button class="btn" name="section" value="checksitemap" formnovalidate><?= icon('check') ?> Verificar sitemap</button>
-        </div>
-      </form>
+      <div class="panel-head"><h2>SEO</h2></div>
+      <p class="muted">Tudo de SEO agora fica num lugar só: títulos, descrições, Google/Bing/Yandex, Analytics, sitemap, robots e redes sociais.</p>
+      <a class="btn btn-red" href="<?= e(url('admin/seo.php')) ?>"><?= icon('search') ?> Abrir Painel › SEO</a>
     </section>
 
     <section class="panel" id="acesso">

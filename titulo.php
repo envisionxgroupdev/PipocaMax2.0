@@ -81,8 +81,8 @@ $similar = q_all(
     [$id, $c['type'], $firstGenre, '%' . $firstGenre . '%']
 );
 
-$pageTitle = $c['title'] . ($c['year'] ? ' (' . (int)$c['year'] . ')' : '');
-$metaDescription = $c['overview'] ?: (type_label($c['type']) . ' ' . $c['title'] . ' no ' . site_name() . '.');
+[$fullTitle, $metaDescription] = seo_for_title($c, count($seasons));
+$pageTitle = $fullTitle;
 $canonical = site_url(content_url($c));
 $metaImage = abs_img($c['backdrop'] ?: $c['poster'], 'w1280');
 $ogType = $isMovie ? 'video.movie' : 'video.tv_show';

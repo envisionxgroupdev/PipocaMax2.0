@@ -72,15 +72,11 @@ $years = cache_remember('years', 1800, fn() => q_all('SELECT DISTINCT year FROM 
 $qs = http_build_query(array_filter(['genero' => $genre, 'ano' => $year ?: null, 'ordem' => $sort !== 'recentes' ? $sort : null]));
 $pageUrl = strtok($_SERVER['REQUEST_URI'], '?') . ($qs ? '?' . $qs : '');
 
-$pageTitle = $heading . ($page > 1 ? ' — página ' . $page : '');
+$fullTitle = seo_fill(seo_tpl('list_title'), ['lista' => $heading, 'pagina' => seo_page_suffix($page)]);
+$pageTitle = $fullTitle;
 $pageNames = ['movie' => 'filmes', 'series' => 'series', 'anime' => 'animes', 'release' => 'lancamentos'];
 $canonical = site_url(page_url($pageNames[$catType], $page > 1 ? 'p=' . $page : ''));
-$metaDescription = [
-    'movie' => 'Catálogo de filmes do ' . site_name() . ': lançamentos, ação, comédia, drama, terror e muito mais.',
-    'series' => 'Séries no ' . site_name() . ': todas as temporadas e episódios em um só lugar.',
-    'anime' => 'Animes no ' . site_name() . ': temporadas e episódios dos seus animes favoritos.',
-    'release' => 'Lançamentos do ' . site_name() . ': os filmes, séries e animes mais recentes.',
-][$catType];
+$metaDescription = seo_cut_desc(seo_fill(seo_tpl('list_desc'), ['lista' => $heading]));
 $noindex = ($genre !== '' || $year > 0 || $sort !== 'recentes');
 $jsonLd = [
     schema_page('CollectionPage', $canonical, $pageTitle, $metaDescription, $items ? ['@id' => $canonical . '#lista'] : null),

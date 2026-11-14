@@ -134,6 +134,75 @@
     });
   }
 
+  // ===== SEO =====
+  var seoFill = function (tpl, v) {
+    var out = String(tpl || '').replace(/\{(\w+)\}/g, function (m, k) { return v[k] != null ? v[k] : ''; });
+    out = out.replace(/\(\s*\)/g, '').replace(/\s+([,.)])/g, '$1').replace(/\(\s+/g, '(').replace(/\s{2,}/g, ' ').replace(/^\s*[-–|•]\s*|\s*[-–|•]\s*$/g, '');
+    return out.trim();
+  };
+  var cutDesc = function (s) { s = s.replace(/\s+/g, ' ').trim(); return s.length > 160 ? s.slice(0, 157).replace(/\s+\S*$/, '') + '…' : s; };
+  var lenHint = function (field) {
+    var em = field.closest('.field') && field.closest('.field').querySelector('[data-len]');
+    if (!em) return;
+    var n = field.value.length, max = field.dataset.kind === 'desc' ? 160 : 60;
+    em.textContent = '(' + n + ' letras' + (n > max ? ' — o Google corta depois de ~' + max : '') + ')';
+    em.style.color = n > max ? '#f5b301' : '';
+  };
+  var seoTabs = $$('[data-seo-tab]');
+  if (seoTabs.length) {
+    var siteName = JSON.parse(document.getElementById('seo-site').textContent).site;
+    var showTab = function (t) {
+      if (!document.getElementById('pane-' + t)) t = 'visao';
+      seoTabs.forEach(function (a) { a.classList.toggle('active', a.dataset.seoTab === t); });
+      $$('.seo-pane').forEach(function (p) { p.hidden = p.id !== 'pane-' + t; });
+    };
+    seoTabs.forEach(function (a) { a.addEventListener('click', function (e) { e.preventDefault(); history.replaceState(null, '', '#' + a.dataset.seoTab); showTab(a.dataset.seoTab); }); });
+    $$('[data-seo-go]').forEach(function (a) { a.addEventListener('click', function (e) { e.preventDefault(); history.replaceState(null, '', '#' + a.dataset.seoGo); showTab(a.dataset.seoGo); }); });
+    showTab(location.hash.replace('#', '') || 'visao');
+    var lastField = null;
+    $$('[data-seo-field]').forEach(function (f) { f.addEventListener('focus', function () { lastField = f; }); });
+    $$('.seo-var').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var f = lastField || document.querySelector('[data-seo-field]');
+        var s = f.selectionStart != null ? f.selectionStart : f.value.length, en = f.selectionEnd != null ? f.selectionEnd : s;
+        f.value = f.value.slice(0, s) + b.dataset.var + f.value.slice(en); f.focus();
+        f.selectionStart = f.selectionEnd = s + b.dataset.var.length;
+        f.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    });
+    var renderTpl = function (box) {
+      var fs = box.querySelectorAll('[data-seo-field]');
+      var t = box.dataset.exTitulo, y = box.dataset.exAno;
+      var v = { titulo: t, ano: y, titulo_original: t, genero: 'Animação', temporadas: '2 temporadas', canal: t, categoria: 'Abertos', lista: t, pagina: '', site: siteName,
+        sinopse: 'Uma jovem corajosa parte numa jornada pelo oceano para salvar o seu povo e descobre o seu destino.' };
+      box.querySelector('[data-gp-title]').textContent = seoFill(fs[0].value, v);
+      box.querySelector('[data-gp-desc]').textContent = cutDesc(seoFill(fs[1].value, v));
+    };
+    $$('.seo-tpl').forEach(function (box) {
+      $$('[data-seo-field]', box).forEach(function (f) { f.addEventListener('input', function () { renderTpl(box); lenHint(f); }); });
+      box.querySelector('[data-seo-reset]').addEventListener('click', function () {
+        $$('[data-seo-field]', box).forEach(function (f) { f.value = f.dataset.default; lenHint(f); }); renderTpl(box);
+      });
+      renderTpl(box);
+    });
+    $$('[data-seo-field]').forEach(function (f) { lenHint(f); f.addEventListener('input', function () { lenHint(f); }); });
+    $$('[data-copy]').forEach(function (b) { b.addEventListener('click', function () { navigator.clipboard && navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copiado!'; }); });
+  }
+  // SEO deste título (Conteúdos)
+  var seoBox = document.querySelector('.seo-box');
+  if (seoBox) {
+    var tpls = JSON.parse(seoBox.dataset.seoTpls), fm = seoBox.closest('form');
+    var val = function (n) { var el = fm.querySelector('[name="' + n + '"]'); return el ? el.value.trim() : ''; };
+    var upd2 = function () {
+      var t = tpls[val('type')] || tpls.movie, g = val('genres').split(',')[0] || '';
+      var v = { titulo: val('title') || 'Nome do título', ano: val('year'), titulo_original: val('original_title'), genero: g.trim(), sinopse: val('overview'), temporadas: '', site: seoBox.dataset.site };
+      seoBox.querySelector('[data-gp-title]').textContent = seoFill(val('seo_title') || t[0], v);
+      seoBox.querySelector('[data-gp-desc]').textContent = cutDesc(seoFill(val('seo_desc') || t[1], v));
+      ['seo_title', 'seo_desc'].forEach(function (n) { var c = seoBox.querySelector('[data-count="' + n + '"]'); if (c) c.textContent = val(n) ? '(' + val(n).length + ' letras)' : ''; });
+    };
+    fm.addEventListener('input', upd2); fm.addEventListener('change', upd2); upd2();
+  }
+
   // Segurança: mostra as chaves só quando há CAPTCHA
   var secCap = document.getElementById('sec-captcha');
   if (secCap) {

@@ -1,10 +1,14 @@
 <?php
 /** @var string $pageTitle  @var string $active */
 require_once __DIR__ . '/icons.php';
-$pageTitle = isset($pageTitle) && $pageTitle ? $pageTitle . ' • ' . site_name() : (setting('seo_home_title') ?: site_name() . ' • ' . setting('site_description'));
+if (!empty($fullTitle)) {
+    $pageTitle = $fullTitle; // já montado pelo modelo de SEO
+} else {
+    $pageTitle = isset($pageTitle) && $pageTitle ? seo_fill(seo_tpl('other_title'), ['pagina_nome' => $pageTitle]) : (setting('seo_home_title') ?: site_name() . ' - ' . setting('site_description'));
+}
 $metaDescription = trim(preg_replace('/\s+/', ' ', (string)($metaDescription ?? setting('site_description'))));
 $canonical = $canonical ?? null;
-$metaImage = $metaImage ?? null;
+$metaImage = ($metaImage ?? null) ?: (setting('seo_og_image') ?: null);
 $ogType = $ogType ?? 'website';
 $noindex = $noindex ?? false;
 $jsonLd = $jsonLd ?? [];
@@ -35,6 +39,7 @@ $nav = [
 <?php if ($canonical): ?><meta property="og:url" content="<?= e($canonical) ?>"><?php endif; ?>
 <?php if ($metaImage): ?><meta property="og:image" content="<?= e($metaImage) ?>"><?php endif; ?>
 <meta name="twitter:card" content="<?= $metaImage ? 'summary_large_image' : 'summary' ?>">
+<?php if (setting('seo_twitter')): ?><meta name="twitter:site" content="@<?= e(ltrim(setting('seo_twitter'), '@')) ?>"><?php endif; ?>
 <?php if (setting('google_verification')): ?><meta name="google-site-verification" content="<?= e(setting('google_verification')) ?>"><?php endif; ?>
 <?php if (setting('bing_verification')): ?><meta name="msvalidate.01" content="<?= e(setting('bing_verification')) ?>"><?php endif; ?>
 <?php if (setting('yandex_verification')): ?><meta name="yandex-verification" content="<?= e(setting('yandex_verification')) ?>"><?php endif; ?>

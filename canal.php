@@ -31,9 +31,10 @@ if (empty($_SESSION['viewed_ch'][$id])) {
 }
 $others = q_all("SELECT * FROM channels WHERE status = 'active' AND id <> ? ORDER BY (category = ?) DESC, sort, name LIMIT 24", [$id, (string)$ch['category']]);
 
-$pageTitle = $ch['name'] . ' ao vivo';
+$fullTitle = seo_fill(seo_tpl('channel_title'), ['canal' => $ch['name'], 'categoria' => (string)$ch['category']]);
+$pageTitle = $fullTitle;
 $canonical = site_url(channel_url($ch));
-$metaDescription = 'Assista ' . $ch['name'] . ' ao vivo no ' . site_name() . '.';
+$metaDescription = seo_cut_desc(seo_fill(seo_tpl('channel_desc'), ['canal' => $ch['name'], 'categoria' => (string)$ch['category']]));
 $metaImage = abs_img($ch['logo']);
 $jsonLd = [
     schema_page('WebPage', $canonical, $pageTitle, $metaDescription, ['@id' => $canonical . '#canal']),

@@ -23,6 +23,7 @@ function admin_header(string $title, string $active = ''): void
         ['videojs', 'videojs.php', 'Player próprio', 'play'],
         ['usuarios', 'usuarios.php', 'Usuários', 'users'],
         ['seguranca', 'seguranca.php', 'Segurança', 'shield'],
+        ['seo', 'seo.php', 'SEO', 'search'],
         ['reportes', 'reportes.php', 'Reportes', 'flag', $openReports],
         ['config', 'configuracoes.php', 'Configurações', 'settings'],
     ];
