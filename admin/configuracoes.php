@@ -63,7 +63,6 @@ admin_header('Configurações', 'config');
 <div class="settings">
   <nav class="settings-nav">
     <a href="#geral"><?= icon('settings') ?> Geral</a>
-    <a href="<?= e(url('admin/seo.php')) ?>"><?= icon('search') ?> SEO <small class="muted">(nova aba)</small></a>
     <a href="#acesso"><?= icon('users') ?> Acesso e cadastro</a>
     <a href="#manutencao"><?= icon('wrench') ?> Manutenção</a>
     <a href="#tmdb"><?= icon('database') ?> API do TMDB</a>
@@ -82,12 +81,6 @@ admin_header('Configurações', 'config');
         <label class="field span-3"><span>Texto do rodapé</span><input name="footer_text" value="<?= e(setting('footer_text')) ?>"></label>
         <div class="span-3"><button class="btn btn-red">Salvar</button></div>
       </form>
-    </section>
-
-    <section class="panel" id="seo">
-      <div class="panel-head"><h2>SEO</h2></div>
-      <p class="muted">Tudo de SEO agora fica num lugar só: títulos, descrições, Google/Bing/Yandex, Analytics, sitemap, robots e redes sociais.</p>
-      <a class="btn btn-red" href="<?= e(url('admin/seo.php')) ?>"><?= icon('search') ?> Abrir Painel › SEO</a>
     </section>
 
     <section class="panel" id="acesso">

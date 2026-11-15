@@ -172,7 +172,10 @@ admin_header('Avisos', 'avisos');
       <label class="toggle-row"><div><b>Aviso ligado</b><small>Desligue para guardar o aviso sem mostrar.</small></div><input type="checkbox" name="active" value="1" <?= $a['active'] ? 'checked' : '' ?>><span class="switch-ui"></span></label>
     </section>
   </div>
-  <div class="seo-save"><button class="btn btn-red btn-lg"><?= icon('check') ?> <?= $a['id'] ? 'Salvar aviso' : 'Publicar aviso' ?></button> <a class="btn btn-lg" href="<?= e(url('admin/avisos.php')) ?>">Cancelar</a></div>
+  <div class="ann-save">
+    <a class="btn btn-lg" href="<?= e(url('admin/avisos.php')) ?>">Cancelar</a>
+    <button class="btn btn-red btn-lg"><?= icon('check') ?> <?= $a['id'] ? 'Salvar aviso' : 'Publicar aviso' ?></button>
+  </div>
 </form>
 <?php endif; ?>
 <?php admin_footer();
