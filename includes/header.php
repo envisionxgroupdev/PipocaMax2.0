@@ -69,6 +69,10 @@ $nav = [
 </head>
 <body class="<?= e($bodyClass ?? '') ?>">
 <?= custom_code('body') ?>
+<?php $annList = ann_active(); if (!empty($annList['top'])): ?>
+<?= ann_render($annList['top']) ?>
+<script>(function(){var b=document.currentScript.previousElementSibling;try{if(localStorage.getItem('pm_ann_x:'+b.dataset.ann)){b.remove();return;}}catch(e){}document.documentElement.style.setProperty('--ann',b.offsetHeight+'px');})();</script>
+<?php endif; ?>
 <header class="topbar" id="topbar">
   <div class="topbar-inner">
     <?= logo_html() ?>

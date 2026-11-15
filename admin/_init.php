@@ -19,6 +19,7 @@ function admin_header(string $title, string $active = ''): void
         ['auto', 'automatico.php', 'Importação automática', 'wrench'],
         ['canais', 'canais.php', 'TV Online', 'live'],
         ['anuncios', 'anuncios.php', 'Anúncios e códigos', 'grid'],
+        ['avisos', 'avisos.php', 'Avisos (banners)', 'flag'],
         ['notificacoes', 'notificacoes.php', 'Notificações', 'bell'],
         ['videojs', 'videojs.php', 'Player próprio', 'play'],
         ['usuarios', 'usuarios.php', 'Usuários', 'users'],

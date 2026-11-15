@@ -154,6 +154,34 @@
     });
   });
 
+  // ===== Avisos: prévia ao vivo =====
+  var annForm = document.getElementById('ann-form');
+  if (annForm) {
+    var stage = document.getElementById('ann-stage');
+    var v = function (n) { var el = annForm.querySelector('[name="' + n + '"]'); if (!el) return ''; if (el.type === 'radio') { var c = annForm.querySelector('[name="' + n + '"]:checked'); return c ? c.value : ''; } if (el.type === 'checkbox') return el.checked; return el.value.trim(); };
+    var nl = function (t) { return escH(t).replace(/\n/g, '<br>'); };
+    var drawAnn = function () {
+      var pos = v('position'), st = v('style'), title = v('title'), msg = v('message') || 'Escreva o texto do aviso…', bt = v('btn_text'), bu = v('btn_url'), x = v('dismissible'), img = v('image');
+      var btn = bt ? '<a class="ann-btn" href="#">' + escH(bt) + '</a>' : '';
+      var cls = x ? '<button type="button" class="ann-x">&times;</button>' : '';
+      var top = stage.querySelector('.ann-stage-top'), bottom = stage.querySelector('.ann-stage-bottom'), body = stage.querySelector('.ann-stage-body');
+      top.innerHTML = ''; bottom.innerHTML = ''; var old = stage.querySelector('.ann-pop'); if (old) old.remove();
+      if (pos === 'popup') {
+        var pop = document.createElement('div');
+        pop.className = 'ann-pop ann-' + st;
+        pop.innerHTML = '<div class="ann-pop-box">' + cls + (img ? '<img class="ann-img" src="' + escH(img) + '" alt="">' : '') + '<div class="ann-pop-body">' + (title ? '<h3>' + escH(title) + '</h3>' : '') + '<p>' + nl(msg) + '</p>' + btn + '</div></div>';
+        stage.querySelector('.ann-stage-site').appendChild(pop);
+      } else {
+        var bar = '<div class="ann-bar ann-' + pos + ' ann-' + st + '"><div class="ann-inner"><div class="ann-text">' + (title ? '<b>' + escH(title) + '</b> ' : '') + '<span>' + nl(msg) + '</span></div>' + btn + '</div>' + cls + '</div>';
+        (pos === 'top' ? top : bottom).innerHTML = bar;
+      }
+      $$('[data-only="popup"]', annForm).forEach(function (el) { el.hidden = pos !== 'popup'; });
+    };
+    annForm.addEventListener('input', drawAnn); annForm.addEventListener('change', drawAnn); drawAnn();
+    var any = annForm.querySelector('[data-pages-any]');
+    any.addEventListener('change', function () { annForm.querySelector('.ann-pages').hidden = any.checked; });
+  }
+
   // Manutenção: mostra o campo da mensagem quando marcado
   document.addEventListener('change', function (e) {
     var t = e.target.closest('[data-maint-toggle]'); if (!t) return;

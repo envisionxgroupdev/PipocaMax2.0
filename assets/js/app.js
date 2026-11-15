@@ -99,6 +99,46 @@
     document.addEventListener('click', function () { um.classList.remove('open'); });
   }
 
+  /* ---------- Avisos (banners) ---------- */
+  (function () {
+    var LS = function (k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
+    var SS = function (k, v) { try { if (v === undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k, v); } catch (e) { return null; } };
+    var hit = function (id, t) { try { var d = new FormData(); d.append('a', id); d.append('t', t); navigator.sendBeacon ? navigator.sendBeacon(PM.base + '/api.php?action=ann_hit', d) : fetch(PM.base + '/api.php?action=ann_hit', { method: 'POST', body: d }); } catch (e) {} };
+    var fitBottom = function () {
+      var b = $('.ann-bottom');
+      document.body.classList.toggle('ann-has-bottom', !!b);
+      if (b) document.documentElement.style.setProperty('--ann-b', b.offsetHeight + 'px');
+    };
+    $$('[data-ann]').forEach(function (el) {
+      var id = el.dataset.ann, pos = el.dataset.pos;
+      if (LS('pm_ann_x:' + id)) { el.remove(); return; }
+      if (pos === 'popup') {
+        var f = el.dataset.freq;
+        if ((f === 'once' && LS('pm_ann_seen:' + id)) || (f === 'session' && SS('pm_ann_seen:' + id))) { el.remove(); return; }
+        setTimeout(function () {
+          el.hidden = false; hit(id, 'view');
+          LS('pm_ann_seen:' + id, '1'); SS('pm_ann_seen:' + id, '1');
+          var x = $('[data-ann-close]', el); if (x) x.focus();
+        }, Math.max(0, +el.dataset.delay || 0) * 1000);
+        el.addEventListener('click', function (e) { if (e.target === el && $('[data-ann-close]', el)) close(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !el.hidden && $('[data-ann-close]', el)) close(); });
+      } else {
+        hit(id, 'view');
+      }
+      function close() {
+        if (pos !== 'popup') LS('pm_ann_x:' + id, '1');
+        el.remove();
+        if (pos === 'top') document.documentElement.style.setProperty('--ann', '0px');
+        fitBottom();
+      }
+      var x = $('[data-ann-close]', el); if (x) x.addEventListener('click', close);
+      var c = $('[data-ann-click]', el); if (c) c.addEventListener('click', function () { hit(id, 'click'); if (pos === 'popup') el.remove(); });
+    });
+    fitBottom();
+    var t = $('.ann-top');
+    if (t) window.addEventListener('resize', function () { if (document.body.contains(t)) document.documentElement.style.setProperty('--ann', t.offsetHeight + 'px'); });
+  })();
+
   /* ---------- Sininho ---------- */
   var bell = $('.bell');
   if (bell) {

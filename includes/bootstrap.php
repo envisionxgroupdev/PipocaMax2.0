@@ -114,6 +114,7 @@ require_once __DIR__ . '/schema.php';
 require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/seo.php';
 require_once __DIR__ . '/domain.php';
+require_once __DIR__ . '/announcements.php';
 
 try {
     db();
@@ -253,5 +254,33 @@ if ((int)setting('db_version', '1') < 14) {
     try { q('ALTER TABLE players ADD COLUMN maint TINYINT(1) NOT NULL DEFAULT 0'); } catch (Throwable $e) {}
     try { q('ALTER TABLE players ADD COLUMN maint_msg VARCHAR(255) NULL'); } catch (Throwable $e) {}
     set_setting('db_version', '14');
+}
+if ((int)setting('db_version', '1') < 15) {
+    // Avisos/banners do site
+    q("CREATE TABLE IF NOT EXISTS announcements (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        title VARCHAR(120) NOT NULL DEFAULT '',
+        message TEXT NOT NULL,
+        btn_text VARCHAR(40) NOT NULL DEFAULT '',
+        btn_url VARCHAR(500) NOT NULL DEFAULT '',
+        new_tab TINYINT(1) NOT NULL DEFAULT 0,
+        image VARCHAR(500) NULL,
+        style VARCHAR(10) NOT NULL DEFAULT 'red',
+        position VARCHAR(10) NOT NULL DEFAULT 'top',
+        audience VARCHAR(10) NOT NULL DEFAULT 'all',
+        pages VARCHAR(200) NOT NULL DEFAULT '',
+        dismissible TINYINT(1) NOT NULL DEFAULT 1,
+        freq VARCHAR(10) NOT NULL DEFAULT 'once',
+        delay_sec INT NOT NULL DEFAULT 2,
+        starts_at DATETIME NULL,
+        ends_at DATETIME NULL,
+        active TINYINT(1) NOT NULL DEFAULT 1,
+        sort INT NOT NULL DEFAULT 0,
+        views INT UNSIGNED NOT NULL DEFAULT 0,
+        clicks INT UNSIGNED NOT NULL DEFAULT 0,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        KEY idx_active (active, sort)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    set_setting('db_version', '15');
 }
 refresh_current_user();

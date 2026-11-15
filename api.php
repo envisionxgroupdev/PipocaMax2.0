@@ -48,6 +48,13 @@ switch ($action) {
         if ($streamUrl === '') json_out(['error' => 'Este conteúdo ainda não foi associado ao catálogo Xtream.'], 404);
         json_out(['url' => $streamUrl]);
 
+    case 'ann_hit':
+        // conta visualização/clique de um aviso (anônimo)
+        $aid = (int)preg_replace('/-.*/', '', in_str('a'));
+        $col = in_str('t') === 'click' ? 'clicks' : 'views';
+        if ($aid > 0 && is_post()) { try { q("UPDATE announcements SET $col = $col + 1 WHERE id = ?", [$aid]); } catch (Throwable $e) {} }
+        json_out(['ok' => true]);
+
     case 'domain_ping':
         // Usado pelo Painel › Domínio para provar que o domínio novo abre ESTE site
         header('Content-Type: application/javascript; charset=utf-8');

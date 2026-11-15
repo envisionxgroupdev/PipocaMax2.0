@@ -46,8 +46,10 @@ if (is_post()) {
         $colors = ['#e50914', '#b81d24', '#f5a623', '#2ea043', '#1f6feb', '#8957e5', '#db61a2'];
         q('INSERT INTO users (name, email, password, avatar_color, register_ip) VALUES (?, ?, ?, ?, ?)',
             [mb_substr($name, 0, 120), $email, password_hash($pass, PASSWORD_DEFAULT), $colors[array_rand($colors)], client_ip()]);
+        $newId = (int)db()->lastInsertId(); // pega o id ANTES de gravar qualquer outra coisa
         sec_hit('register_ok');
-        $u = q_one('SELECT * FROM users WHERE id = ?', [(int)db()->lastInsertId()]);
+        $u = q_one('SELECT * FROM users WHERE id = ?', [$newId]) ?: q_one('SELECT * FROM users WHERE email = ?', [$email]);
+        if (!$u) { flash('success', 'Conta criada! Entre com seu e-mail e senha.'); redirect('login'); }
         login_user($u);
         flash('success', 'Conta criada! Bem-vindo ao ' . site_name() . '.');
         redirect('index.php');

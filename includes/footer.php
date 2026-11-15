@@ -23,6 +23,7 @@
   <a href="<?= e(page_url('tv')) ?>" class="<?= $active === 'tv' ? 'active' : '' ?>"><?= icon('live') ?><span>TV</span></a>
 </nav>
 
+<?php if (!empty($annList['bottom'])) echo ann_render($annList['bottom']); if (!empty($annList['popup'])) echo ann_render($annList['popup']); ?>
 <script>window.PM = { base: <?= json_encode(BASE_URL) ?>, csrf: <?= json_encode(csrf_token()) ?>, logged: <?= current_user() ? 'true' : 'false' ?>, vjs: <?= json_encode(vjs_config(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?> };</script>
 <script src="<?= e(asset('js/app.js')) ?>" defer></script>
 <?= custom_code('footer') ?>
