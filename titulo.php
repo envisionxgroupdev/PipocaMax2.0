@@ -51,7 +51,7 @@ if ($isMovie) {
     $players = $canWatch ? players_in_order('movie', vjs_api_player($c), api_players_movie($c), q_all('SELECT * FROM players WHERE content_id = ? ORDER BY sort, id', [$id])) : [];
 } else {
     $seasons = q_all('SELECT * FROM seasons WHERE content_id = ? ORDER BY season_number', [$id]);
-    $apiEpisodes = (api_has_episode_players() || vjs_api_enabled('episode') || setting('xtream_on', '0') === '1') && ($c['tmdb_id'] || $c['imdb_id']);
+    $apiEpisodes = (api_has_episode_players() || setting('vjs_api_on', '1') === '1' || setting('xtream_on', '0') === '1') && ($c['tmdb_id'] || $c['imdb_id']);
     $eps = q_all(
         'SELECT e.id, e.season_id, e.episode_number, e.name, e.overview, e.still, e.runtime, e.air_date,
                 (SELECT COUNT(*) FROM players p WHERE p.episode_id = e.id) AS nplayers
@@ -169,7 +169,7 @@ require __DIR__ . '/includes/header.php';
             <?= icon('play') ?> <span><?= e($fp['name']) ?></span>
             <?php if ($fp['audio']): ?><em><?= e($fp['audio']) ?></em><?php endif; ?>
             <?php if ($fp['quality']): ?><em class="q"><?= e($fp['quality']) ?></em><?php endif; ?>
-            <?php if ($mt): ?><em class="mt"><?= $mt === 'admin' ? 'Manutenção • só você vê' : 'Manutenção' ?></em><?php endif; ?>
+            <?php if ($mt && empty($fp['soon'])): ?><em class="mt"><?= $mt === 'admin' ? 'Manutenção • só você vê' : 'Manutenção' ?></em><?php endif; ?>
           </button>
         <?php endforeach; ?>
       </div>

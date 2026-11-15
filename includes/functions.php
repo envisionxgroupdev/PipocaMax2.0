@@ -446,7 +446,7 @@ function player_order_api_keys(string $kind): array
 function player_order_items(string $kind): array
 {
     $items = [];
-    if (vjs_api_enabled($kind === 'movie' ? 'movie' : 'episode') || setting('vjs_api_movie') !== '' || setting('vjs_api_episode') !== '') {
+    if (setting('vjs_api_on', '1') === '1') {
         $items['vjs'] = ['vjs', setting('vjs_api_name') ?: 'Player Pipoca', 'Player próprio (Video.js)'];
     }
     foreach (player_order_api_keys($kind) as $a) $items[$a['key']] = [$a['key'], $a['name'], 'API de players'];
@@ -560,9 +560,13 @@ function vjs_api_url(array $c, ?int $season = null, ?int $episode = null): ?stri
 function vjs_api_player(array $c, ?int $season = null, ?int $episode = null, ?int $episodeId = null): ?array
 {
     if (function_exists('xtream_player') && ($xtreamPlayer = xtream_player($c, $episodeId))) return $xtreamPlayer;
-    if (!vjs_api_enabled($season === null ? 'movie' : 'episode')) return null;
-    $direct = vjs_api_url($c, $season, $episode);
-    if ($direct === null) return null;
+    if (setting('vjs_api_on', '1') !== '1') return null;
+    $direct = vjs_api_enabled($season === null ? 'movie' : 'episode') ? vjs_api_url($c, $season, $episode) : null;
+    if ($direct === null) {
+        // ativado, mas sem vídeo para este título: aparece com uma mensagem em vez de sumir
+        return ['id' => -100, 'name' => setting('vjs_api_name') ?: 'Player Pipoca', 'kind' => 'videojs', 'audio' => setting('vjs_api_audio') ?: '', 'quality' => '',
+            'url' => '', 'unavail' => 1, 'unavail_msg' => setting('vjs_empty_msg') ?: 'Este título ainda não está disponível neste player. Escolha outro player abaixo.'];
+    }
     $json = setting('vjs_api_mode', 'direct') === 'json';
     $cid = (int)($c['content_id'] ?? ($c['id'] ?? 0));
     return [
@@ -609,7 +613,7 @@ function vjs_config(): array
 function players_for_front(array $players): array
 {
     $admin = is_admin();
-    $players = array_filter($players, fn($p) => clean_url((string)$p['url']) !== '');
+    $players = array_filter($players, fn($p) => !empty($p['unavail']) || clean_url((string)$p['url']) !== '');
     return array_values(array_map(function ($p) use ($admin) {
         $out = [
             'id' => (int)$p['id'],
@@ -619,8 +623,12 @@ function players_for_front(array $players): array
             'audio' => $p['audio'],
             'quality' => $p['quality'],
         ] + (!empty($p['resolve']) ? ['resolve' => 1] : []) + (!empty($p['test']) ? ['test' => 1] : []);
+        if (!empty($p['unavail']) && empty($p['maint'])) {
+            $out['url'] = ''; $out['maint'] = 1; $out['soon'] = 1; $out['msg'] = (string)$p['unavail_msg'];
+            return $out;
+        }
         if (!empty($p['maint'])) {
-            if ($admin) {
+            if ($admin && empty($p['unavail'])) {
                 $out['maint'] = 'admin'; // o admin continua vendo e testando
             } else {
                 // visitante: não recebe o link, só a mensagem

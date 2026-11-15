@@ -43,6 +43,14 @@ if (is_post()) {
     $c['error_msg'] = mb_substr(in_str('error_msg'), 0, 160);
     // API de vídeo (fica só no servidor)
     set_setting('vjs_api_on', !empty($_POST['api_on']) ? '1' : '0');
+    set_setting('vjs_empty_msg', mb_substr(in_str('empty_msg'), 0, 255));
+    // manutenção do player próprio (filmes e episódios) — a mesma da Ordem dos players
+    $mm = player_maint_map();
+    foreach (['movie', 'episode'] as $k) {
+        if (!empty($_POST['vjs_maint'])) $mm[$k]['vjs'] = ['on' => 1, 'msg' => mb_substr(in_str('vjs_maint_msg'), 0, 255)];
+        else unset($mm[$k]['vjs']);
+    }
+    set_setting('player_maint', json_encode($mm, JSON_UNESCAPED_UNICODE));
     set_setting('vjs_api_name', mb_substr(in_str('api_name'), 0, 40) ?: 'Player Pipoca');
     set_setting('vjs_api_audio', mb_substr(in_str('api_audio'), 0, 30));
     set_setting('vjs_api_movie', mb_substr(trim((string)($_POST['api_movie'] ?? '')), 0, 500));
@@ -82,7 +90,11 @@ admin_header('Player próprio', 'videojs');
   <?= csrf_field() ?>
   <h3 class="sub-title">Ativar no site (sua API de vídeo)</h3>
   <p class="muted small">Com o link da API preenchido, o player próprio aparece <b>em primeiro</b> em todos os filmes e episódios. Os outros players continuam logo depois.</p>
-  <label class="toggle-row"><div><b>Player próprio ativado</b><small>Mostra o player próprio em primeiro nos filmes e episódios.</small></div><input type="checkbox" name="api_on" value="1" <?= $apiOn ? 'checked' : '' ?>><span class="switch-ui"></span></label>
+  <label class="toggle-row"><div><b>Player próprio ativado</b><small>Aparece sempre em primeiro nos filmes e episódios (a posição pode ser mudada em Configurações › Ordem dos players).</small></div><input type="checkbox" name="api_on" value="1" <?= $apiOn ? 'checked' : '' ?>><span class="switch-ui"></span></label>
+  <?php $vm = player_maint_map()['movie']['vjs'] ?? (player_maint_map()['episode']['vjs'] ?? null); ?>
+  <label class="toggle-row"><div><b><?= icon('wrench') ?> Em manutenção</b><small>Os visitantes veem o botão com a etiqueta "Manutenção" e a sua mensagem; só você (admin) vê ele funcionando.</small></div><input type="checkbox" name="vjs_maint" value="1" <?= $vm ? 'checked' : '' ?>><span class="switch-ui"></span></label>
+  <label class="field"><span>Mensagem da manutenção (vazio = mensagem padrão)</span><input name="vjs_maint_msg" value="<?= e($vm['msg'] ?? '') ?>" maxlength="255" placeholder="<?= e(player_maint_default_msg()) ?>"></label>
+  <label class="field"><span>Mensagem quando o título ainda não tem vídeo neste player</span><input name="empty_msg" value="<?= e(setting('vjs_empty_msg')) ?>" maxlength="255" placeholder="Este título ainda não está disponível neste player. Escolha outro player abaixo."></label>
   <div class="cols">
     <label class="field"><span>Nome do player</span><input name="api_name" value="<?= e(setting('vjs_api_name') ?: 'Player Pipoca') ?>" maxlength="40"></label>
     <label class="field"><span>Áudio (opcional)</span><input name="api_audio" value="<?= e(setting('vjs_api_audio')) ?>" maxlength="30" placeholder="Dublado" list="audios"></label>

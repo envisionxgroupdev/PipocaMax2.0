@@ -256,7 +256,9 @@
     if (box._hls) { box._hls.destroy(); box._hls = null; }
     box.innerHTML = '<div class="player-msg"><div class="spinner"></div></div>';
     if (p && p.maint === 1) {
-      box.innerHTML = '<div class="player-msg player-maint"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><b>Player em manutenção</b><span>' + esc(p.msg || '') + '</span></div>';
+      box.innerHTML = p.soon
+        ? '<div class="player-msg player-maint"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><b>Indisponível neste player</b><span>' + esc(p.msg || '') + '</span></div>'
+        : '<div class="player-msg player-maint"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><b>Player em manutenção</b><span>' + esc(p.msg || '') + '</span></div>';
       return;
     }
     if (!p || !/^https?:\/\//i.test(p.url || '')) { box.innerHTML = '<div class="player-msg">Player indisponível.</div>'; return; }
@@ -466,7 +468,7 @@
             return '<button class="server' + (i === 0 ? ' active' : '') + (p.maint ? ' is-maint' : '') + '" data-player="' + esc(JSON.stringify(p)) + '">' +
               '<svg class="ico" viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor"/></svg> <span>' + esc(p.name) + '</span>' +
               (p.audio ? '<em>' + esc(p.audio) + '</em>' : '') + (p.quality ? '<em class="q">' + esc(p.quality) + '</em>' : '') +
-              (p.maint ? '<em class="mt">' + (p.maint === 'admin' ? 'Manutenção • só você vê' : 'Manutenção') + '</em>' : '') + '</button>';
+              (p.maint && !p.soon ? '<em class="mt">' + (p.maint === 'admin' ? 'Manutenção • só você vê' : 'Manutenção') + '</em>' : '') + '</button>';
           }).join('');
           bindServers(srv, box, true);
         })
