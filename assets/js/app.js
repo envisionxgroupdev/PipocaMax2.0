@@ -267,6 +267,7 @@
       f.src = p.url;
       f.setAttribute('allowfullscreen', '');
       f.setAttribute('allow', 'autoplay; fullscreen; encrypted-media; picture-in-picture');
+      f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation');
       f.setAttribute('frameborder', '0');
       f.setAttribute('scrolling', 'no');
       box.innerHTML = '';
