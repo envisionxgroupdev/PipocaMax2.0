@@ -674,3 +674,9 @@ body.ann-has-bottom { padding-bottom: var(--ann-b, 0px); }
 .ann-save .btn { min-width: 0; overflow: visible; }
 .ann-save .btn > * { flex-shrink: 0; }
 @media (max-width: 380px) { .ann-save .btn { font-size: 14px; padding: 0 8px; gap: 6px; } }
+/* Ícones dentro dos botões: cor e tamanho próprios (no iPhone o ícone sumia) */
+.btn .ico, .btn-ghost .ico { display: block; width: 18px; height: 18px; min-width: 18px; flex: 0 0 18px; stroke: currentColor; -webkit-text-fill-color: initial; overflow: visible; }
+.btn-sm .ico { width: 16px; height: 16px; min-width: 16px; flex-basis: 16px; }
+.btn-red .ico, .ann-save .btn-red .ico { stroke: #fff; color: #fff; }
+.btn:not(.btn-red):not(.btn-danger) .ico { stroke: #fff; }
+.btn-danger .ico { stroke: #ff7b7b; }
