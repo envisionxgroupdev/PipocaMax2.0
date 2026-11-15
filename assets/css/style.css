@@ -493,3 +493,9 @@ a.bell-item:hover { background: #1c1c1c; }
 
 .hp-field { position: absolute !important; left: -9999px !important; width: 1px; height: 1px; overflow: hidden; }
 .captcha-box { margin: 4px 0 14px; min-height: 65px; }
+.server em.mt { background: #f5b301; color: #000; font-weight: 800; }
+.server.is-maint:not(.active) { opacity: .7; }
+.player-maint { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 20px; }
+.player-maint .ico { width: 40px; height: 40px; color: #f5b301; }
+.player-maint b { font-size: 1.15rem; }
+.player-maint span { color: #ccc; max-width: 460px; line-height: 1.5; }

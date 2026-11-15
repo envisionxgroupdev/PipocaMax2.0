@@ -154,6 +154,14 @@
     });
   });
 
+  // Manutenção: mostra o campo da mensagem quando marcado
+  document.addEventListener('change', function (e) {
+    var t = e.target.closest('[data-maint-toggle]'); if (!t) return;
+    var box = t.closest('li, .player-row'), msg = box && box.querySelector('.maint-msg');
+    if (msg) { msg.hidden = !t.checked; if (t.checked) msg.focus(); }
+    if (box && box.tagName === 'LI') box.classList.toggle('is-maint', t.checked);
+  });
+
   // ===== Domínio =====
   var domTest = document.querySelector('[data-domain-test]');
   if (domTest) {

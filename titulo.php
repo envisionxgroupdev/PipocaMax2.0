@@ -159,11 +159,17 @@ require __DIR__ . '/includes/header.php';
     </div>
     <?php if ($players): ?>
       <div class="servers" data-servers>
-        <?php $si = 0; foreach ($players as $p): $fp = players_for_front([$p])[0] ?? null; if (!$fp) continue; ?>
-          <button class="server<?= $si++ === 0 ? ' active' : '' ?>" data-player='<?= e(json_encode($fp, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>'>
-            <?= icon('play') ?> <span><?= e($p['name']) ?></span>
-            <?php if ($p['audio']): ?><em><?= e($p['audio']) ?></em><?php endif; ?>
-            <?php if ($p['quality']): ?><em class="q"><?= e($p['quality']) ?></em><?php endif; ?>
+        <?php
+          $fps = players_for_front($players);
+          $firstOk = 0;
+          foreach ($fps as $k => $fp) { if (($fp['maint'] ?? 0) !== 1) { $firstOk = $k; break; } }
+          foreach ($fps as $k => $fp): $mt = $fp['maint'] ?? 0;
+        ?>
+          <button class="server<?= $k === $firstOk ? ' active' : '' ?><?= $mt ? ' is-maint' : '' ?>" data-player='<?= e(json_encode($fp, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)) ?>'>
+            <?= icon('play') ?> <span><?= e($fp['name']) ?></span>
+            <?php if ($fp['audio']): ?><em><?= e($fp['audio']) ?></em><?php endif; ?>
+            <?php if ($fp['quality']): ?><em class="q"><?= e($fp['quality']) ?></em><?php endif; ?>
+            <?php if ($mt): ?><em class="mt"><?= $mt === 'admin' ? 'Manutenção • só você vê' : 'Manutenção' ?></em><?php endif; ?>
           </button>
         <?php endforeach; ?>
       </div>

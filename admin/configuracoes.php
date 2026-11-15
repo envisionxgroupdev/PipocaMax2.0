@@ -39,6 +39,15 @@ if (is_post()) {
             set_setting('episode_player_templates', (string)($_POST['episode_player_templates'] ?? ''));
             break;
         case 'ordem':
+            $mm = [];
+            foreach (['movie', 'episode'] as $k) {
+                foreach ((array)($_POST['maint'][$k] ?? []) as $key => $on) {
+                    $msg = mb_substr(trim((string)($_POST['maint_msg'][$k][$key] ?? '')), 0, 255);
+                    if ($on) $mm[$k][mb_substr((string)$key, 0, 120)] = ['on' => 1, 'msg' => $msg];
+                }
+            }
+            set_setting('player_maint', json_encode($mm, JSON_UNESCAPED_UNICODE));
+            set_setting('player_maint_msg', mb_substr(in_str('player_maint_msg'), 0, 255));
             foreach (['movie', 'episode'] as $k) {
                 $keys = array_values(array_unique(array_filter(array_map(fn($v) => mb_substr(trim((string)$v), 0, 120), (array)($_POST['order'][$k] ?? [])))));
                 set_setting('player_order_' . $k, json_encode($keys, JSON_UNESCAPED_UNICODE));
@@ -155,8 +164,8 @@ admin_header('Configurações', 'config');
             <div>
               <h3 class="sub-title"><?= icon($ico) ?> <?= $lbl ?></h3>
               <ol class="pl-order" data-pl-order>
-                <?php foreach (player_order_items($k) as $i => [$key, $nm, $desc]): ?>
-                  <li draggable="true">
+                <?php $mmk = player_maint_map()[$k] ?? []; foreach (player_order_items($k) as $i => [$key, $nm, $desc]): $isM = !empty($mmk[$key]['on']); ?>
+                  <li draggable="true" class="<?= $isM ? 'is-maint' : '' ?>">
                     <span class="pl-pos"><?= $i + 1 ?></span>
                     <span class="pl-grip" aria-hidden="true">⋮⋮</span>
                     <span class="pl-txt"><b><?= e($nm) ?></b><small><?= e($desc) ?></small></span>
@@ -164,12 +173,22 @@ admin_header('Configurações', 'config');
                     <button type="button" class="btn btn-sm" data-mv="-1" aria-label="Subir">↑</button>
                     <button type="button" class="btn btn-sm" data-mv="1" aria-label="Descer">↓</button>
                     <input type="hidden" name="order[<?= $k ?>][]" value="<?= e($key) ?>">
+                    <?php if ($key !== 'manual'): ?>
+                      <div class="pl-maint">
+                        <label class="maint-toggle"><input type="checkbox" name="maint[<?= $k ?>][<?= e($key) ?>]" value="1" <?= $isM ? 'checked' : '' ?> data-maint-toggle> <?= icon('wrench') ?> Em manutenção</label>
+                        <input name="maint_msg[<?= $k ?>][<?= e($key) ?>]" value="<?= e($mmk[$key]['msg'] ?? '') ?>" placeholder="Mensagem (vazio = padrão)" maxlength="255" class="maint-msg" <?= $isM ? '' : 'hidden' ?>>
+                      </div>
+                    <?php else: ?>
+                      <div class="pl-maint muted small">Manutenção destes: em cada player, dentro do filme/episódio.</div>
+                    <?php endif; ?>
                   </li>
                 <?php endforeach; ?>
               </ol>
             </div>
           <?php endforeach; ?>
         </div>
+        <label class="field"><span><?= icon('wrench') ?> Mensagem padrão de manutenção (para quem não é admin)</span><input name="player_maint_msg" value="<?= e(setting('player_maint_msg')) ?>" placeholder="<?= e(player_maint_default_msg()) ?>" maxlength="255"></label>
+        <p class="muted small">Em manutenção, o player continua aparecendo para os visitantes com a sua mensagem (sem abrir o vídeo); só você, logado como admin, vê e testa ele funcionando.</p>
         <p class="muted small">Players novos da API aparecem aqui depois que você salvar em <b>API de players</b>. Dentro de "Players cadastrados no título", a ordem é a que você define em cada filme/episódio.</p>
         <button class="btn btn-red btn-lg">Salvar ordem</button>
       </form>

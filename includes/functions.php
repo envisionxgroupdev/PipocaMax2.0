@@ -457,17 +457,34 @@ function player_order_items(string $kind): array
     return array_merge($out, array_values($items)); // novos entram no fim
 }
 
+/** Manutenção dos players gerados (player próprio e API): [kind][key] => ['on' => 0/1, 'msg' => ''] */
+function player_maint_map(): array
+{
+    $m = json_decode((string)setting('player_maint', ''), true);
+    return is_array($m) ? $m : [];
+}
+
+function player_maint_default_msg(): string
+{
+    return setting('player_maint_msg') ?: 'Este player está em manutenção. Escolha outro player ou volte mais tarde.';
+}
+
 /** Junta os players na ordem escolhida em Configurações › Ordem dos players */
 function players_in_order(string $kind, ?array $vjs, array $api, array $manual): array
 {
-    $groups = ['vjs' => $vjs ? [$vjs] : [], 'manual' => $manual];
+    $mm = player_maint_map()[$kind] ?? [];
+    $tag = function (array $p, string $key) use ($mm) {
+        if (!empty($mm[$key]['on'])) { $p['maint'] = 1; $p['maint_msg'] = (string)($mm[$key]['msg'] ?? ''); }
+        return $p;
+    };
+    $groups = ['vjs' => $vjs ? [$tag($vjs, 'vjs')] : [], 'manual' => $manual];
     $keys = player_order_api_keys($kind);
     $byName = [];
     foreach ($keys as $k) $byName[mb_strtolower(trim($k['name']))][] = $k['key'];
     foreach ($api as $p) {
         $n = mb_strtolower(trim($p['name']));
         $key = !empty($byName[$n]) ? array_shift($byName[$n]) : 'api:' . $n . '#x' . count($groups);
-        $groups[$key] = [$p];
+        $groups[$key] = [$tag($p, $key)];
     }
     $saved = json_decode((string)setting('player_order_' . $kind, ''), true);
     $out = [];
@@ -591,15 +608,28 @@ function vjs_config(): array
 
 function players_for_front(array $players): array
 {
+    $admin = is_admin();
     $players = array_filter($players, fn($p) => clean_url((string)$p['url']) !== '');
-    return array_values(array_map(fn($p) => [
-        'id' => (int)$p['id'],
-        'name' => $p['name'],
-        'url' => $p['url'],
-        'kind' => $p['kind'],
-        'audio' => $p['audio'],
-        'quality' => $p['quality'],
-    ] + (!empty($p['resolve']) ? ['resolve' => 1] : []) + (!empty($p['test']) ? ['test' => 1] : []), $players));
+    return array_values(array_map(function ($p) use ($admin) {
+        $out = [
+            'id' => (int)$p['id'],
+            'name' => $p['name'],
+            'url' => $p['url'],
+            'kind' => $p['kind'],
+            'audio' => $p['audio'],
+            'quality' => $p['quality'],
+        ] + (!empty($p['resolve']) ? ['resolve' => 1] : []) + (!empty($p['test']) ? ['test' => 1] : []);
+        if (!empty($p['maint'])) {
+            if ($admin) {
+                $out['maint'] = 'admin'; // o admin continua vendo e testando
+            } else {
+                // visitante: não recebe o link, só a mensagem
+                $out = ['id' => (int)$p['id'], 'name' => $p['name'], 'url' => '', 'kind' => $p['kind'], 'audio' => $p['audio'], 'quality' => $p['quality'],
+                    'maint' => 1, 'msg' => trim((string)($p['maint_msg'] ?? '')) ?: player_maint_default_msg()];
+            }
+        }
+        return $out;
+    }, $players));
 }
 
 function json_out($data, int $code = 200): void

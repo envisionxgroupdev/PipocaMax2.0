@@ -114,6 +114,8 @@ function players_editor(array $players, string $owner, int $ownerId, string $bac
           </select>
           <input name="audio" value="<?= e($p['audio']) ?>" placeholder="Áudio" class="w-small" list="audios">
           <input name="quality" value="<?= e($p['quality']) ?>" placeholder="Qualidade" class="w-small" list="qualities">
+          <label class="maint-toggle" title="Em manutenção: só o admin vê funcionando"><input type="checkbox" name="maint" value="1" <?= !empty($p['maint']) ? 'checked' : '' ?> data-maint-toggle> <?= icon('wrench') ?> Manutenção</label>
+          <input name="maint_msg" value="<?= e($p['maint_msg'] ?? '') ?>" placeholder="Mensagem para os visitantes (vazio = mensagem padrão)" class="w-url maint-msg" maxlength="255" <?= empty($p['maint']) ? 'hidden' : '' ?>>
           <div class="row-actions">
             <button name="action" value="up" class="btn-ghost" title="Subir" <?= $i === 0 ? 'disabled' : '' ?>>↑</button>
             <button name="action" value="down" class="btn-ghost" title="Descer" <?= $i === count($players) - 1 ? 'disabled' : '' ?>>↓</button>

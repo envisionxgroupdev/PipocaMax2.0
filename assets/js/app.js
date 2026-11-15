@@ -215,6 +215,10 @@
     if (box._vjs) { try { box._vjs.dispose(); } catch (e) {} box._vjs = null; }
     if (box._hls) { box._hls.destroy(); box._hls = null; }
     box.innerHTML = '<div class="player-msg"><div class="spinner"></div></div>';
+    if (p && p.maint === 1) {
+      box.innerHTML = '<div class="player-msg player-maint"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><b>Player em manutenção</b><span>' + esc(p.msg || '') + '</span></div>';
+      return;
+    }
     if (!p || !/^https?:\/\//i.test(p.url || '')) { box.innerHTML = '<div class="player-msg">Player indisponível.</div>'; return; }
     if (p.kind === 'embed') {
       var f = document.createElement('iframe');
@@ -280,7 +284,12 @@
         playIn(box, JSON.parse(b.dataset.player));
       });
     });
-    if (autoplay && btns[0]) playIn(box, JSON.parse(btns[0].dataset.player));
+    if (autoplay && btns[0]) {
+      // começa pelo primeiro player que não está em manutenção
+      var first = btns.find(function (b) { return JSON.parse(b.dataset.player).maint !== 1; }) || btns[0];
+      btns.forEach(function (x) { x.classList.toggle('active', x === first); });
+      playIn(box, JSON.parse(first.dataset.player));
+    }
   }
 
   /* Tela cheia do player (com virada para horizontal no celular) */
@@ -414,9 +423,10 @@
           if (j.error) { box.innerHTML = '<div class="player-msg">' + esc(j.error) + '</div>'; return; }
           if (!j.players.length) { box.innerHTML = '<div class="player-msg">Este episódio ainda não tem player disponível.</div>'; return; }
           srv.innerHTML = j.players.map(function (p, i) {
-            return '<button class="server' + (i === 0 ? ' active' : '') + '" data-player="' + esc(JSON.stringify(p)) + '">' +
+            return '<button class="server' + (i === 0 ? ' active' : '') + (p.maint ? ' is-maint' : '') + '" data-player="' + esc(JSON.stringify(p)) + '">' +
               '<svg class="ico" viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor"/></svg> <span>' + esc(p.name) + '</span>' +
-              (p.audio ? '<em>' + esc(p.audio) + '</em>' : '') + (p.quality ? '<em class="q">' + esc(p.quality) + '</em>' : '') + '</button>';
+              (p.audio ? '<em>' + esc(p.audio) + '</em>' : '') + (p.quality ? '<em class="q">' + esc(p.quality) + '</em>' : '') +
+              (p.maint ? '<em class="mt">' + (p.maint === 'admin' ? 'Manutenção • só você vê' : 'Manutenção') + '</em>' : '') + '</button>';
           }).join('');
           bindServers(srv, box, true);
         })

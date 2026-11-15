@@ -248,4 +248,10 @@ if ((int)setting('db_version', '1') < 13) {
     try { q('ALTER TABLE contents ADD COLUMN seo_desc VARCHAR(320) NULL'); } catch (Throwable $e) {}
     set_setting('db_version', '13');
 }
+if ((int)setting('db_version', '1') < 14) {
+    // Player em manutenção (só o admin vê funcionando; visitantes veem a mensagem)
+    try { q('ALTER TABLE players ADD COLUMN maint TINYINT(1) NOT NULL DEFAULT 0'); } catch (Throwable $e) {}
+    try { q('ALTER TABLE players ADD COLUMN maint_msg VARCHAR(255) NULL'); } catch (Throwable $e) {}
+    set_setting('db_version', '14');
+}
 refresh_current_user();

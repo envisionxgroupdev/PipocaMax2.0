@@ -583,3 +583,13 @@ input[type=checkbox] { accent-color: var(--red); width: 16px; height: 16px; }
 .pl-first { display: none; font-size: 11px; font-weight: 800; color: #e50914; border: 1px solid #e50914; border-radius: 4px; padding: 1px 6px; }
 .pl-order li:first-child .pl-first { display: inline-block; }
 .pl-order li:first-child [data-mv="-1"], .pl-order li:last-child [data-mv="1"] { opacity: .3; pointer-events: none; }
+
+/* Player em manutenção */
+.maint-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #ccc; cursor: pointer; white-space: nowrap; }
+.maint-toggle input { accent-color: #f5b301; }
+.maint-toggle .ico { width: 14px; height: 14px; color: #f5b301; }
+.player-row .maint-msg { flex-basis: 100%; }
+.pl-order li { flex-wrap: wrap; }
+.pl-maint { flex-basis: 100%; display: flex; gap: 10px; align-items: center; padding-left: 34px; flex-wrap: wrap; }
+.pl-maint .maint-msg { flex: 1; min-width: 160px; }
+.pl-order li.is-maint { border-color: rgba(245, 179, 1, .5); }

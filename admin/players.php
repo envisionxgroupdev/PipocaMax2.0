@@ -46,8 +46,9 @@ switch ($action) {
     case 'save':
         if ($urlv === '') { flash('error', 'A URL não pode ficar vazia.'); break; }
         if (!in_array($kind, $kinds, true)) $kind = player_kind_from_url($urlv);
-        q('UPDATE players SET name = ?, url = ?, kind = ?, audio = ?, quality = ? WHERE id = ?', [$name, $urlv, $kind, $audio, $quality, $id]);
-        flash('success', 'Player salvo.');
+        q('UPDATE players SET name = ?, url = ?, kind = ?, audio = ?, quality = ?, maint = ?, maint_msg = ? WHERE id = ?',
+            [$name, $urlv, $kind, $audio, $quality, !empty($_POST['maint']) ? 1 : 0, mb_substr(in_str('maint_msg'), 0, 255) ?: null, $id]);
+        flash('success', !empty($_POST['maint']) ? 'Player salvo — em manutenção (só você vê funcionando).' : 'Player salvo.');
         break;
     case 'delete':
         q('DELETE FROM players WHERE id = ?', [$id]);
