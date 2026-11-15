@@ -430,6 +430,56 @@ function api_players(string $setting, array $vars): array
     return $out;
 }
 
+/** Chave de um player da API na ordem (pelo nome; nomes repetidos ganham #2, #3...) */
+function player_order_api_keys(string $kind): array
+{
+    $seen = []; $out = [];
+    foreach (parse_player_templates((string)setting($kind === 'movie' ? 'movie_player_templates' : 'episode_player_templates')) as $t) {
+        $base = 'api:' . mb_strtolower(trim($t['name']));
+        $seen[$base] = ($seen[$base] ?? 0) + 1;
+        $out[] = ['key' => $seen[$base] > 1 ? $base . '#' . $seen[$base] : $base, 'name' => $t['name']];
+    }
+    return $out;
+}
+
+/** Itens da ordem (para o painel): [key, nome, descrição], já na ordem salva */
+function player_order_items(string $kind): array
+{
+    $items = [];
+    if (vjs_api_enabled($kind === 'movie' ? 'movie' : 'episode') || setting('vjs_api_movie') !== '' || setting('vjs_api_episode') !== '') {
+        $items['vjs'] = ['vjs', setting('vjs_api_name') ?: 'Player Pipoca', 'Player próprio (Video.js)'];
+    }
+    foreach (player_order_api_keys($kind) as $a) $items[$a['key']] = [$a['key'], $a['name'], 'API de players'];
+    $items['manual'] = ['manual', 'Players cadastrados no título', 'Os que você adiciona em cada filme/episódio'];
+    $saved = json_decode((string)setting('player_order_' . $kind, ''), true);
+    $out = [];
+    foreach (is_array($saved) ? $saved : [] as $k) if (isset($items[$k])) { $out[] = $items[$k]; unset($items[$k]); }
+    return array_merge($out, array_values($items)); // novos entram no fim
+}
+
+/** Junta os players na ordem escolhida em Configurações › Ordem dos players */
+function players_in_order(string $kind, ?array $vjs, array $api, array $manual): array
+{
+    $groups = ['vjs' => $vjs ? [$vjs] : [], 'manual' => $manual];
+    $keys = player_order_api_keys($kind);
+    $byName = [];
+    foreach ($keys as $k) $byName[mb_strtolower(trim($k['name']))][] = $k['key'];
+    foreach ($api as $p) {
+        $n = mb_strtolower(trim($p['name']));
+        $key = !empty($byName[$n]) ? array_shift($byName[$n]) : 'api:' . $n . '#x' . count($groups);
+        $groups[$key] = [$p];
+    }
+    $saved = json_decode((string)setting('player_order_' . $kind, ''), true);
+    $out = [];
+    foreach (is_array($saved) ? $saved : [] as $k) if (isset($groups[$k])) { array_push($out, ...$groups[$k]); unset($groups[$k]); }
+    // o que não está na ordem salva: padrão (próprio, API, cadastrados)
+    if (isset($groups['vjs'])) { array_push($out, ...$groups['vjs']); unset($groups['vjs']); }
+    $man = $groups['manual'] ?? []; unset($groups['manual']);
+    foreach ($groups as $g) array_push($out, ...$g);
+    array_push($out, ...$man);
+    return $out;
+}
+
 function api_players_movie(array $c): array
 {
     return api_players('movie_player_templates', [

@@ -25,8 +25,8 @@ switch ($action) {
         if (!$ep) {
             json_out(['error' => 'Episódio não encontrado.'], 404);
         }
-        $players = array_merge(
-            array_filter([vjs_api_player($ep, (int)$ep['season_number'], (int)$ep['episode_number'], (int)$ep['id'])]),
+        $players = players_in_order('episode',
+            vjs_api_player($ep, (int)$ep['season_number'], (int)$ep['episode_number'], (int)$ep['id']),
             api_players_episode($ep, (int)$ep['season_number'], (int)$ep['episode_number']),
             q_all('SELECT * FROM players WHERE episode_id = ? ORDER BY sort, id', [$epId])
         );

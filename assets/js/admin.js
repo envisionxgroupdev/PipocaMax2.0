@@ -134,6 +134,26 @@
     });
   }
 
+  // ===== Ordem dos players (arrastar ou setas) =====
+  $$('[data-pl-order]').forEach(function (ol) {
+    var renum = function () { $$('li', ol).forEach(function (li, i) { li.querySelector('.pl-pos').textContent = i + 1; }); };
+    ol.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-mv]'); if (!b) return;
+      var li = b.closest('li'), mv = +b.dataset.mv;
+      if (mv < 0 && li.previousElementSibling) ol.insertBefore(li, li.previousElementSibling);
+      if (mv > 0 && li.nextElementSibling) ol.insertBefore(li.nextElementSibling, li);
+      renum(); li.classList.add('moved'); setTimeout(function () { li.classList.remove('moved'); }, 400);
+    });
+    var drag = null;
+    ol.addEventListener('dragstart', function (e) { drag = e.target.closest('li'); if (drag) { drag.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; } });
+    ol.addEventListener('dragend', function () { if (drag) drag.classList.remove('dragging'); drag = null; renum(); });
+    ol.addEventListener('dragover', function (e) {
+      if (!drag) return; e.preventDefault();
+      var after = $$('li:not(.dragging)', ol).find(function (li) { var r = li.getBoundingClientRect(); return e.clientY < r.top + r.height / 2; });
+      if (after) ol.insertBefore(drag, after); else ol.appendChild(drag);
+    });
+  });
+
   // ===== Domínio =====
   var domTest = document.querySelector('[data-domain-test]');
   if (domTest) {

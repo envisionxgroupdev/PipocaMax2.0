@@ -567,3 +567,19 @@ input[type=checkbox] { accent-color: var(--red); width: 16px; height: 16px; }
 .dom-list small { display: block; color: #aaa; font-size: 13px; margin-top: 2px; line-height: 1.45; }
 .dom-list input:checked + span > b { text-decoration: line-through; color: #888; }
 @media (max-width: 760px) { .dom-cards { grid-template-columns: 1fr; } }
+
+/* Ordem dos players */
+.pl-order { list-style: none; margin: 8px 0 14px; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+.pl-order li { min-width: 0; }
+.pl-order li { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #141414; border: 1px solid var(--line); border-radius: 10px; cursor: grab; transition: background .2s, border-color .2s; }
+.pl-order li.dragging { opacity: .45; }
+.pl-order li.moved { border-color: #e50914; }
+.pl-pos { width: 24px; height: 24px; border-radius: 50%; background: #2a2a2a; display: grid; place-items: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+.pl-order li:first-child .pl-pos { background: #e50914; }
+.pl-grip { color: #666; letter-spacing: -2px; user-select: none; }
+.pl-txt { flex: 1; min-width: 0; }
+.pl-txt b, .pl-txt small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl-txt small { color: var(--muted); font-size: 12px; }
+.pl-first { display: none; font-size: 11px; font-weight: 800; color: #e50914; border: 1px solid #e50914; border-radius: 4px; padding: 1px 6px; }
+.pl-order li:first-child .pl-first { display: inline-block; }
+.pl-order li:first-child [data-mv="-1"], .pl-order li:last-child [data-mv="1"] { opacity: .3; pointer-events: none; }

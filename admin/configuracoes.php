@@ -38,6 +38,12 @@ if (is_post()) {
             set_setting('movie_player_templates', (string)($_POST['movie_player_templates'] ?? ''));
             set_setting('episode_player_templates', (string)($_POST['episode_player_templates'] ?? ''));
             break;
+        case 'ordem':
+            foreach (['movie', 'episode'] as $k) {
+                $keys = array_values(array_unique(array_filter(array_map(fn($v) => mb_substr(trim((string)$v), 0, 120), (array)($_POST['order'][$k] ?? [])))));
+                set_setting('player_order_' . $k, json_encode($keys, JSON_UNESCAPED_UNICODE));
+            }
+            break;
     }
     flash('success', 'Configurações salvas.');
     redirect('admin/configuracoes.php#' . preg_replace('/[^a-z]/', '', $section));
@@ -52,6 +58,7 @@ admin_header('Configurações', 'config');
     <a href="#acesso"><?= icon('users') ?> Acesso e cadastro</a>
     <a href="#manutencao"><?= icon('wrench') ?> Manutenção</a>
     <a href="#tmdb"><?= icon('database') ?> API do TMDB</a>
+    <a href="#ordem"><?= icon('play') ?> Ordem dos players</a>
     <a href="#players"><?= icon('live') ?> API de players</a>
   </nav>
 
@@ -135,6 +142,36 @@ admin_header('Configurações', 'config');
         <textarea name="episode_player_templates" hidden><?= e(setting('episode_player_templates')) ?></textarea>
 
         <button class="btn btn-red btn-lg">Salvar players</button>
+      </form>
+    </section>
+
+    <section class="panel" id="ordem">
+      <div class="panel-head"><h2>Ordem dos players</h2></div>
+      <p class="muted">Escolha qual player aparece primeiro nos filmes e nos episódios. O primeiro da lista é o que abre quando a pessoa clica em assistir. Arraste ou use as setas.</p>
+      <form method="post">
+        <?= csrf_field() ?><input type="hidden" name="section" value="ordem">
+        <div class="cols">
+          <?php foreach (['movie' => ['Filmes', 'film'], 'episode' => ['Episódios (séries e animes)', 'series']] as $k => [$lbl, $ico]): ?>
+            <div>
+              <h3 class="sub-title"><?= icon($ico) ?> <?= $lbl ?></h3>
+              <ol class="pl-order" data-pl-order>
+                <?php foreach (player_order_items($k) as $i => [$key, $nm, $desc]): ?>
+                  <li draggable="true">
+                    <span class="pl-pos"><?= $i + 1 ?></span>
+                    <span class="pl-grip" aria-hidden="true">⋮⋮</span>
+                    <span class="pl-txt"><b><?= e($nm) ?></b><small><?= e($desc) ?></small></span>
+                    <span class="pl-first">1º</span>
+                    <button type="button" class="btn btn-sm" data-mv="-1" aria-label="Subir">↑</button>
+                    <button type="button" class="btn btn-sm" data-mv="1" aria-label="Descer">↓</button>
+                    <input type="hidden" name="order[<?= $k ?>][]" value="<?= e($key) ?>">
+                  </li>
+                <?php endforeach; ?>
+              </ol>
+            </div>
+          <?php endforeach; ?>
+        </div>
+        <p class="muted small">Players novos da API aparecem aqui depois que você salvar em <b>API de players</b>. Dentro de "Players cadastrados no título", a ordem é a que você define em cada filme/episódio.</p>
+        <button class="btn btn-red btn-lg">Salvar ordem</button>
       </form>
     </section>
 
