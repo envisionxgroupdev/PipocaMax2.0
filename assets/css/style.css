@@ -499,7 +499,7 @@ a.bell-item:hover { background: #1c1c1c; }
 .server.is-maint:not(.active) { opacity: .7; }
 .player-maint { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 20px; }
 .player-maint .ico { width: 40px; height: 40px; color: #f5b301; }
-.player-maint b { font-size: 1.15rem; }
+.player-maint b { font-size: 1.15rem; color: #fff; }
 .player-maint span { color: #ccc; max-width: 460px; line-height: 1.5; }
 
 /* ===== Avisos (Painel › Avisos) ===== */

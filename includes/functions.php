@@ -565,7 +565,9 @@ function vjs_api_player(array $c, ?int $season = null, ?int $episode = null, ?in
     if ($direct === null) {
         // ativado, mas sem vídeo para este título: aparece com uma mensagem em vez de sumir
         return ['id' => -100, 'name' => setting('vjs_api_name') ?: 'Player Pipoca', 'kind' => 'videojs', 'audio' => setting('vjs_api_audio') ?: '', 'quality' => '',
-            'url' => '', 'unavail' => 1, 'unavail_msg' => setting('vjs_empty_msg') ?: 'Este título ainda não está disponível neste player. Escolha outro player abaixo.'];
+            'url' => '', 'unavail' => 1,
+            'unavail_title' => setting('vjs_empty_title') ?: 'Em breve no ' . (setting('vjs_api_name') ?: 'Player Pipoca'),
+            'unavail_msg' => setting('vjs_empty_msg') ?: 'Este título ainda não tem vídeo aqui. Escolha um dos outros players acima para assistir agora.'];
     }
     $json = setting('vjs_api_mode', 'direct') === 'json';
     $cid = (int)($c['content_id'] ?? ($c['id'] ?? 0));
@@ -624,7 +626,7 @@ function players_for_front(array $players): array
             'quality' => $p['quality'],
         ] + (!empty($p['resolve']) ? ['resolve' => 1] : []) + (!empty($p['test']) ? ['test' => 1] : []);
         if (!empty($p['unavail']) && empty($p['maint'])) {
-            $out['url'] = ''; $out['maint'] = 1; $out['soon'] = 1; $out['msg'] = (string)$p['unavail_msg'];
+            $out['url'] = ''; $out['maint'] = 1; $out['soon'] = 1; $out['msg'] = (string)$p['unavail_msg']; $out['title'] = (string)($p['unavail_title'] ?? '');
             return $out;
         }
         if (!empty($p['maint'])) {
