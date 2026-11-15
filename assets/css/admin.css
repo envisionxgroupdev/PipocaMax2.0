@@ -667,3 +667,10 @@ body.ann-has-bottom { padding-bottom: var(--ann-b, 0px); }
 .ann-save { position: sticky; bottom: 0; z-index: 5; display: flex; justify-content: flex-end; align-items: center; gap: 10px; margin-top: 16px; padding: 12px 16px; background: #141414; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 -8px 24px rgba(0, 0, 0, .5); }
 .ann-save .btn { margin: 0; height: 46px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 22px; line-height: 1; vertical-align: middle; }
 @media (max-width: 640px) { .ann-save { padding: 10px; border-radius: 12px 12px 0 0; margin-left: -4px; margin-right: -4px; } .ann-save .btn { flex: 1; padding: 0 12px; } }
+/* Botões iguais em todos os navegadores (iPhone/Safari aplica estilo próprio em <button>) */
+.btn, .btn-ghost, button { -webkit-appearance: none; appearance: none; }
+.btn { -webkit-text-fill-color: currentColor; text-decoration: none; line-height: 1.1; }
+.btn-red, .btn-red:hover, .btn-red:active, .btn-red:focus { color: #fff; -webkit-text-fill-color: #fff; }
+.ann-save .btn { min-width: 0; overflow: visible; }
+.ann-save .btn > * { flex-shrink: 0; }
+@media (max-width: 380px) { .ann-save .btn { font-size: 14px; padding: 0 8px; gap: 6px; } }
