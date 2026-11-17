@@ -1,50 +1,71 @@
 <?php
-/** Mapa do site para o Google (sitemap.xml) */
+/**
+ * Mapa do site para o Google, organizado por tipo:
+ *   sitemap.xml            → índice (lista as partes abaixo)
+ *   sitemap-paginas.xml    → início, listas e TV
+ *   sitemap-filmes.xml     → filmes   (divide em -2, -3... a cada 5.000)
+ *   sitemap-series.xml     → séries
+ *   sitemap-animes.xml     → animes
+ *   sitemap-canais.xml     → canais de TV
+ */
 require __DIR__ . '/includes/bootstrap.php';
 
 if (setting('maintenance') === '1') {
     http_response_code(503);
+    header('Retry-After: 3600');
     exit;
 }
 while (ob_get_level() > 0) ob_end_clean();
 header('Content-Type: application/xml; charset=utf-8');
 header('X-Robots-Tag: noindex');
 
-$per = 40000;
-$total = (int)q_val("SELECT COUNT(*) FROM contents WHERE status = 'published'");
-$pages = max(1, (int)ceil($total / $per));
-$p = in_int('p');
+const SM_PER = 5000;
+$t = in_str('t');
+$p = max(1, in_int('p', 1));
+$types = sitemap_groups();
+
+// Parte que não existe (ex.: sitemap-filmes-9.xml) → 404
+if (isset($types[$t]) && $p > max(1, (int)ceil($types[$t]['count'] / SM_PER))) {
+    http_response_code(404);
+    exit;
+}
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
 
-// Muitos títulos: gera um índice de sitemaps
-if ($pages > 1 && $p === 0) {
+// ---------- Índice ----------
+if ($t === '' || !isset($types[$t])) {
     echo '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n";
-    for ($i = 1; $i <= $pages; $i++) {
-        echo '  <sitemap><loc>' . e(site_url(url('sitemap.php?p=' . $i))) . '</loc></sitemap>' . "\n";
+    foreach ($types as $key => $g) {
+        if ($g['count'] === 0) continue;
+        $parts = max(1, (int)ceil($g['count'] / SM_PER));
+        for ($i = 1; $i <= $parts; $i++) {
+            echo '  <sitemap><loc>' . e(sitemap_url($key, $i)) . '</loc>' . ($g['lastmod'] ? '<lastmod>' . e(date('Y-m-d', strtotime($g['lastmod']))) . '</lastmod>' : '') . "</sitemap>\n";
+        }
     }
     echo '</sitemapindex>';
     exit;
 }
-$p = max(1, $p);
 
+// ---------- Uma parte ----------
 echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">' . "\n";
-$line = function (string $loc, ?string $mod = null, ?string $image = null) {
+$line = function (string $loc, ?string $mod = null, ?string $image = null, ?string $title = null) {
     echo '  <url><loc>' . e($loc) . '</loc>' . ($mod ? '<lastmod>' . e(date('Y-m-d', strtotime($mod))) . '</lastmod>' : '')
-        . ($image ? '<image:image><image:loc>' . e($image) . '</image:loc></image:image>' : '') . "</url>\n";
+        . ($image ? '<image:image><image:loc>' . e($image) . '</image:loc>' . ($title ? '<image:title>' . e($title) . '</image:title>' : '') . '</image:image>' : '') . "</url>\n";
 };
-
-if ($p === 1) {
+$off = ($p - 1) * SM_PER;
+if ($t === 'paginas') {
     $line(site_url());
-    foreach (['filmes', 'series', 'animes', 'lancamentos', 'tv'] as $pg) {
-        $line(site_url(page_url($pg)));
-    }
-    foreach (q_all("SELECT id, name, slug, created_at FROM channels WHERE status = 'active'") as $ch) {
+    foreach (['lancamentos', 'filmes', 'series', 'animes'] as $pg) $line(site_url(page_url($pg)));
+    if ($types['canais']['count'] > 0) $line(site_url(page_url('tv')));
+} elseif ($t === 'canais') {
+    foreach (q_all("SELECT id, name, slug, created_at FROM channels WHERE status = 'active' ORDER BY name LIMIT " . SM_PER . " OFFSET $off") as $ch) {
         $line(site_url(channel_url($ch)), $ch['created_at']);
     }
-}
-$st = q("SELECT id, type, slug, poster, updated_at FROM contents WHERE status = 'published' ORDER BY id LIMIT $per OFFSET " . (($p - 1) * $per));
-while ($c = $st->fetch()) {
-    $line(site_url(content_url($c)), $c['updated_at'], abs_img($c['poster'], 'w500'));
+} else {
+    $type = ['filmes' => 'movie', 'series' => 'series', 'animes' => 'anime'][$t];
+    $st = q("SELECT id, type, slug, title, poster, updated_at FROM contents WHERE status = 'published' AND type = ? ORDER BY updated_at DESC, id DESC LIMIT " . SM_PER . " OFFSET $off", [$type]);
+    while ($c = $st->fetch()) {
+        $line(site_url(content_url($c)), $c['updated_at'], abs_img($c['poster'], 'w500'), $c['title']);
+    }
 }
 echo '</urlset>';

@@ -69,6 +69,33 @@ function seo_for_title(array $c, int $seasons = 0): array
     return [$title, seo_cut_desc($desc)];
 }
 
+/** Partes do sitemap: chave => [nome, quantidade, última atualização] */
+function sitemap_groups(): array
+{
+    $g = ['paginas' => ['name' => 'Páginas principais', 'count' => 0, 'lastmod' => null]];
+    foreach (['filmes' => ['movie', 'Filmes'], 'series' => ['series', 'Séries'], 'animes' => ['anime', 'Animes']] as $k => [$type, $name]) {
+        $r = q_one("SELECT COUNT(*) n, MAX(updated_at) m FROM contents WHERE status = 'published' AND type = ?", [$type]);
+        $g[$k] = ['name' => $name, 'count' => (int)($r['n'] ?? 0), 'lastmod' => $r['m'] ?? null];
+    }
+    try {
+        $r = q_one("SELECT COUNT(*) n, MAX(created_at) m FROM channels WHERE status = 'active'");
+        $g['canais'] = ['name' => 'Canais de TV', 'count' => (int)($r['n'] ?? 0), 'lastmod' => $r['m'] ?? null];
+    } catch (Throwable $e) {
+        $g['canais'] = ['name' => 'Canais de TV', 'count' => 0, 'lastmod' => null];
+    }
+    $g['paginas']['count'] = 5 + ($g['canais']['count'] > 0 ? 1 : 0);
+    $g['paginas']['lastmod'] = max(array_filter(array_column($g, 'lastmod')) ?: [null]);
+    return $g;
+}
+
+/** Endereço de uma parte do sitemap (com ou sem URLs amigáveis) */
+function sitemap_url(string $key = '', int $part = 1): string
+{
+    if ($key === '') return site_url(pretty_urls() ? url('sitemap.xml') : url('sitemap.php'));
+    if (pretty_urls()) return site_url(url('sitemap-' . $key . ($part > 1 ? '-' . $part : '') . '.xml'));
+    return site_url(url('sitemap.php?t=' . $key . ($part > 1 ? '&p=' . $part : '')));
+}
+
 function seo_page_suffix(int $page): string
 {
     return $page > 1 ? ' - Página ' . $page : '';

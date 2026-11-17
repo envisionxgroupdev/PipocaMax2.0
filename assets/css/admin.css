@@ -680,3 +680,14 @@ body.ann-has-bottom { padding-bottom: var(--ann-b, 0px); }
 .btn-red .ico, .ann-save .btn-red .ico { stroke: #fff; color: #fff; }
 .btn:not(.btn-red):not(.btn-danger) .ico { stroke: #fff; }
 .btn-danger .ico { stroke: #ff7b7b; }
+.sm-list { display: grid; gap: 8px; margin: 10px 0 18px; }
+.sm-item { display: grid; grid-template-columns: minmax(0, 1fr) 130px 150px auto; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line, #2a2a2a); border-radius: 10px; background: rgba(255,255,255,.02); }
+.sm-name { min-width: 0; }
+.sm-name b, .sm-name small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sm-item small { color: var(--muted, #8a8a8a); font-size: 12px; }
+@media (max-width: 640px) {
+  .sm-item { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; }
+  .sm-item .sm-num { grid-column: 1; grid-row: 2; }
+  .sm-item .sm-date { display: none; }
+  .sm-item .btn { grid-column: 2; grid-row: 1 / span 2; }
+}

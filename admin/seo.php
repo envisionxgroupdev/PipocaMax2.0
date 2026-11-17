@@ -43,7 +43,7 @@ if (is_post()) {
             redirect('admin/seo.php#sitemap');
         }
         // Testa o sitemap do jeito que o Google acessa
-        $smUrl = site_url(pretty_urls() ? url('sitemap.xml') : url('sitemap.php'));
+        $smUrl = sitemap_url();
         $body = false; $code = 0;
         if (function_exists('curl_init')) {
             $ch = curl_init($smUrl);
@@ -56,8 +56,9 @@ if (is_post()) {
             libxml_use_internal_errors(true);
             $xml = simplexml_load_string((string)$body);
             if ($xml !== false) {
-                $n = isset($xml->url) ? count($xml->url) : count($xml->sitemap);
-                flash('success', "Sitemap funcionando! O Google vai encontrar $n endereço(s) em $smUrl");
+                $n = isset($xml->url) ? count($xml->url) : array_sum(array_map(fn($g) => $g['count'], sitemap_groups()));
+                $parts = isset($xml->sitemap) ? count($xml->sitemap) : 1;
+                flash('success', "Sitemap funcionando! $parts parte(s) com $n endereço(s) no total em $smUrl");
             } else {
                 flash('error', 'O sitemap abriu, mas o conteúdo veio com defeito. Me mande um print desta mensagem.');
             }
@@ -76,7 +77,7 @@ if (is_post()) {
 }
 
 // Checklist
-$smUrl = site_url(pretty_urls() ? url('sitemap.xml') : url('sitemap.php'));
+$smUrl = sitemap_url();
 $pub = (int)q_val("SELECT COUNT(*) FROM contents WHERE status = 'published'");
 $noOverview = (int)q_val("SELECT COUNT(*) FROM contents WHERE status = 'published' AND (overview IS NULL OR overview = '')");
 $noPoster = (int)q_val("SELECT COUNT(*) FROM contents WHERE status = 'published' AND (poster IS NULL OR poster = '')");
@@ -180,6 +181,21 @@ admin_header('SEO', 'seo');
     <b>Seu sitemap:</b> <a href="<?= e($smUrl) ?>" target="_blank"><?= e($smUrl) ?></a> <button type="button" class="btn btn-sm" data-copy="<?= e($smUrl) ?>">Copiar</button><br>
     Envie esse endereço em <b>Sitemaps</b> no Google Search Console, no Bing e no Yandex. Ele se atualiza sozinho a cada título publicado.<br>
     <span class="muted">Aberto no celular ele pode aparecer em branco — é normal, ele é feito para o Google ler.</span>
+  </div>
+  <h3 class="sub-title">Como ele está organizado</h3>
+  <p class="muted small">O endereço acima é o <b>índice</b>: ele aponta para uma parte de cada tipo, e o Google lê todas sozinho. No Search Console você vê quantas páginas de cada parte entraram na busca.</p>
+  <div class="sm-list">
+    <?php foreach (sitemap_groups() as $k => $g): if (!$g['count']) continue; $parts = max(1, (int)ceil($g['count'] / 5000)); ?>
+      <?php for ($i = 1; $i <= $parts; $i++): $u = sitemap_url($k, $i); $n = $i < $parts ? 5000 : $g['count'] - ($parts - 1) * 5000; ?>
+        <div class="sm-item">
+          <div class="sm-name"><b><?= e($g['name']) ?><?= $parts > 1 ? ' (' . $i . ')' : '' ?></b>
+            <small><?= e(basename(parse_url($u, PHP_URL_PATH)) . (parse_url($u, PHP_URL_QUERY) ? '?' . parse_url($u, PHP_URL_QUERY) : '')) ?></small></div>
+          <div class="sm-num"><b><?= number_format($n, 0, ',', '.') ?></b> <small>endereço<?= $n === 1 ? '' : 's' ?></small></div>
+          <div class="sm-date"><small><?= $g['lastmod'] ? 'Atualizado ' . e(date('d/m/Y', strtotime($g['lastmod']))) : '' ?></small></div>
+          <a class="btn btn-sm" href="<?= e($u) ?>" target="_blank" rel="noopener">Abrir</a>
+        </div>
+      <?php endfor; ?>
+    <?php endforeach; ?>
   </div>
   <div class="btn-row" style="margin:12px 0 20px"><button class="btn" name="section" value="checksitemap" formnovalidate><?= icon('check') ?> Verificar sitemap</button><a class="btn" href="<?= e(site_url(url('robots.txt'))) ?>" target="_blank"><?= icon('external') ?> Ver robots.txt</a></div>
   <p class="muted small">O robots.txt já bloqueia o painel, a busca, o login e as páginas de conta, e aponta o sitemap. Se precisar de alguma regra a mais, coloque aqui:</p>
