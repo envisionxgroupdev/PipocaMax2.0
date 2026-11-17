@@ -153,8 +153,8 @@ function sitemap_groups(): array
 /** Endereço de uma parte do sitemap (com ou sem URLs amigáveis) */
 function sitemap_url(string $key = '', int $part = 1): string
 {
-    if ($key === '') return site_url(pretty_urls() ? url('sitemap.xml') : url('sitemap.php'));
-    if (pretty_urls()) return site_url(url('sitemap-' . $key . ($part > 1 ? '-' . $part : '') . '.xml'));
+    if ($key === '') return site_url(pretty_urls() ? url('sitemap_v2.xml') : url('sitemap.php'));
+    if (pretty_urls()) return site_url(url('sitemap_v2-' . $key . ($part > 1 ? '-' . $part : '') . '.xml'));
     return site_url(url('sitemap.php?t=' . $key . ($part > 1 ? '&p=' . $part : '')));
 }
 

@@ -1,12 +1,12 @@
 <?php
 /**
  * Mapa do site para o Google, organizado por tipo:
- *   sitemap.xml            → índice (lista as partes abaixo)
- *   sitemap-paginas.xml    → início, listas e TV
- *   sitemap-filmes.xml     → filmes   (divide em -2, -3... a cada 5.000)
- *   sitemap-series.xml     → séries
- *   sitemap-animes.xml     → animes
- *   sitemap-canais.xml     → canais de TV
+ *   sitemap_v2.xml         → índice (lista as partes abaixo)
+ *   sitemap_v2-paginas.xml    → início, listas e TV
+ *   sitemap_v2-filmes.xml     → filmes   (divide em -2, -3... a cada 5.000)
+ *   sitemap_v2-series.xml     → séries
+ *   sitemap_v2-animes.xml     → animes
+ *   sitemap_v2-canais.xml     → canais de TV
  */
 require __DIR__ . '/includes/bootstrap.php';
 
@@ -24,7 +24,13 @@ $t = in_str('t');
 $p = max(1, in_int('p', 1));
 $types = sitemap_groups();
 
-// Parte que não existe (ex.: sitemap-filmes-9.xml) → 404
+// Endereço antigo (sitemap.xml / sitemap-filmes.xml) → nome novo, com 301
+if (isset($_GET['antigo']) && pretty_urls()) {
+    header('Location: ' . sitemap_url(isset($types[$t]) ? $t : '', $p), true, 301);
+    exit;
+}
+
+// Parte que não existe (ex.: sitemap_v2-filmes-9.xml) → 404
 if (isset($types[$t]) && $p > max(1, (int)ceil($types[$t]['count'] / SM_PER))) {
     http_response_code(404);
     exit;
