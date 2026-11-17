@@ -30,6 +30,10 @@ if (is_post()) {
             if (in_str('google_analytics') !== '' && !preg_match('/^G-[A-Z0-9]+$/', $ga)) flash('error', 'O ID do Google Analytics precisa ser no formato G-XXXXXXXXXX.');
             break;
         case 'sitemap':
+            foreach (robots_groups() as $k => $g) {
+                if (!$g['fixed']) set_setting('robots_' . $k, isset($_POST['robots_' . $k]) ? '1' : '0');
+            }
+            set_setting('robots_delay', (string)(in_array(in_int('robots_delay'), [0, 2, 5, 10], true) ? in_int('robots_delay') : 0));
             $lines = array_filter(array_map('trim', preg_split('/\R/', (string)($_POST['robots_extra'] ?? ''))), fn($l) => $l === '' || preg_match('/^(User-agent|Disallow|Allow|Crawl-delay|Sitemap|#)/i', $l));
             set_setting('robots_extra', mb_substr(trim(implode("\n", $lines)), 0, 5000));
             break;
@@ -198,8 +202,29 @@ admin_header('SEO', 'seo');
     <?php endforeach; ?>
   </div>
   <div class="btn-row" style="margin:12px 0 20px"><button class="btn" name="section" value="checksitemap" formnovalidate><?= icon('check') ?> Verificar sitemap</button><a class="btn" href="<?= e(site_url(url('robots.txt'))) ?>" target="_blank"><?= icon('external') ?> Ver robots.txt</a></div>
-  <p class="muted small">O robots.txt já bloqueia o painel, a busca, o login e as páginas de conta, e aponta o sitemap. Se precisar de alguma regra a mais, coloque aqui:</p>
+  <h3 class="sub-title">Robôs (crawlers)</h3>
+  <p class="muted small">Escolha quem pode visitar o site. Todos os liberados ficam sem acesso ao painel, à busca, ao login e às páginas de conta.</p>
+  <div class="rb-list">
+    <?php foreach (robots_groups() as $k => $g): $on = robots_group_on($k); ?>
+      <label class="toggle-row rb-row<?= $g['fixed'] ? ' rb-fixed' : '' ?>">
+        <div><b><?= e($g['name']) ?> <?php if ($g['fixed']): ?><span class="pill pill-ok">Sempre liberado</span><?php endif; ?></b>
+          <small><?= e($g['desc']) ?></small>
+          <small class="rb-bots"><?= e(implode(', ', $g['bots'])) ?></small></div>
+        <input type="checkbox" name="robots_<?= $k ?>" value="1" <?= $on ? 'checked' : '' ?> <?= $g['fixed'] ? 'disabled' : '' ?>><span class="switch-ui"></span>
+      </label>
+    <?php endforeach; ?>
+  </div>
+  <label class="field" style="max-width:420px"><span>Intervalo para os outros robôs</span>
+    <select name="robots_delay">
+      <?php foreach ([0 => 'Sem intervalo', 2 => '2 segundos entre páginas', 5 => '5 segundos entre páginas', 10 => '10 segundos entre páginas'] as $v => $l): ?>
+        <option value="<?= $v ?>" <?= (int)setting('robots_delay', '0') === $v ? 'selected' : '' ?>><?= e($l) ?></option>
+      <?php endforeach; ?>
+    </select>
+    <small class="muted">Vale só para robôs que não estão nos grupos acima. O Google não usa esse intervalo.</small>
+  </label>
+  <p class="muted small">Se precisar de alguma regra a mais, coloque aqui:</p>
   <label class="field"><span>Regras extras do robots.txt</span><textarea name="robots_extra" rows="4" placeholder="User-agent: GPTBot&#10;Disallow: /"><?= e(setting('robots_extra')) ?></textarea></label>
+  <details class="rb-preview"><summary>Ver como o robots.txt está ficando</summary><pre><?= e(robots_build()) ?></pre></details>
   <div class="seo-save"><button class="btn btn-red btn-lg"><?= icon('check') ?> Salvar</button></div>
 </form>
 

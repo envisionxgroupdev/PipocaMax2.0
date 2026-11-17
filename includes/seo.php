@@ -69,6 +69,68 @@ function seo_for_title(array $c, int $seasons = 0): array
     return [$title, seo_cut_desc($desc)];
 }
 
+/**
+ * Robôs do robots.txt, separados por grupo.
+ * fixed = sempre liberado (não dá para desligar no painel)
+ * def   = padrão quando o admin ainda não mexeu ('1' liberado, '0' bloqueado)
+ */
+function robots_groups(): array
+{
+    return [
+        'search' => ['name' => 'Buscadores', 'fixed' => true, 'def' => '1',
+            'desc' => 'Google, Bing, Apple, DuckDuckGo e Yandex. São eles que trazem visitas pela busca.',
+            'bots' => ['Googlebot', 'Googlebot-Image', 'Googlebot-Video', 'Googlebot-News', 'Storebot-Google', 'Google-InspectionTool', 'Bingbot', 'BingPreview', 'MSNBot', 'Applebot', 'DuckDuckBot', 'YandexBot', 'YandexImages']],
+        'social' => ['name' => 'Redes sociais e apps de mensagem', 'fixed' => true, 'def' => '1',
+            'desc' => 'Geram a prévia (capa, título e descrição) quando alguém compartilha um link no WhatsApp, Facebook, Telegram, X etc.',
+            'bots' => ['facebookexternalhit', 'Facebot', 'meta-externalfetcher', 'WhatsApp', 'TelegramBot', 'Twitterbot', 'LinkedInBot', 'Pinterestbot', 'Discordbot', 'Slackbot']],
+        'ai_search' => ['name' => 'Buscas com IA', 'fixed' => false, 'def' => '1',
+            'desc' => 'ChatGPT, Perplexity e Claude quando buscam na internet para responder alguém. Podem mostrar e linkar o seu site.',
+            'bots' => ['OAI-SearchBot', 'ChatGPT-User', 'PerplexityBot', 'Perplexity-User', 'Claude-SearchBot', 'Claude-User']],
+        'ai_train' => ['name' => 'Treinamento de IA', 'fixed' => false, 'def' => '0',
+            'desc' => 'Copiam o conteúdo para treinar inteligência artificial. Não trazem visitas. Bloquear não afeta o Google.',
+            'bots' => ['GPTBot', 'ClaudeBot', 'anthropic-ai', 'Google-Extended', 'Applebot-Extended', 'CCBot', 'Bytespider', 'meta-externalagent', 'Amazonbot', 'cohere-ai', 'Diffbot', 'omgili', 'Timpibot']],
+        'seo_tools' => ['name' => 'Ferramentas de SEO', 'fixed' => false, 'def' => '0',
+            'desc' => 'Ahrefs, Semrush, Moz, Majestic. Só servem se você usa uma delas; senão gastam servidor à toa.',
+            'bots' => ['AhrefsBot', 'SemrushBot', 'rogerbot', 'dotbot', 'MJ12bot', 'BLEXBot', 'DataForSeoBot', 'serpstatbot', 'Barkrowler', 'SeekportBot']],
+        'heavy' => ['name' => 'Buscadores estrangeiros pesados', 'fixed' => false, 'def' => '0',
+            'desc' => 'Baidu (China), Sogou, Petal (Huawei) e outros sem público no Brasil, que visitam muitas páginas.',
+            'bots' => ['Baiduspider', 'Sogou', 'PetalBot', 'YisouSpider', '360Spider', 'MegaIndex.ru']],
+    ];
+}
+
+function robots_group_on(string $key): bool
+{
+    $g = robots_groups()[$key] ?? null;
+    if (!$g) return false;
+    if ($g['fixed']) return true;
+    return setting('robots_' . $key, $g['def']) === '1';
+}
+
+/** Monta o texto completo do robots.txt */
+function robots_build(): string
+{
+    $b = BASE_URL;
+    $private = ['/admin/', '/install/', '/includes/', '/cron.php', '/api.php', '/busca', '/busca.php', '/login', '/login.php', '/cadastro', '/cadastro.php', '/conta', '/conta.php', '/minha-lista', '/minha-lista.php', '/logout.php'];
+    $rules = function (array $bots, bool $allow, int $delay = 0) use ($b, $private): string {
+        $o = '';
+        foreach ($bots as $bot) $o .= 'User-agent: ' . $bot . "\n";
+        if (!$allow) return $o . "Disallow: /\n";
+        foreach ($private as $d) $o .= 'Disallow: ' . $b . $d . "\n";
+        if ($delay > 0) $o .= 'Crawl-delay: ' . $delay . "\n";
+        return $o . 'Allow: ' . ($b ?: '') . "/\n";
+    };
+    $out = '# robots.txt - ' . site_name() . "\n# Gerado pelo painel (SEO > Sitemap e robots)\n\n";
+    foreach (robots_groups() as $k => $g) {
+        $on = robots_group_on($k);
+        $out .= '# ' . $g['name'] . ($on ? '' : ' (bloqueado)') . "\n" . $rules($g['bots'], $on) . "\n";
+    }
+    $delay = (int)setting('robots_delay', '0');
+    $out .= "# Todos os outros robôs\n" . $rules(['*'], true, in_array($delay, [2, 5, 10], true) ? $delay : 0);
+    $extra = trim(str_replace("\r", '', (string)setting('robots_extra')));
+    if ($extra !== '') $out .= "\n# Regras extras\n" . $extra . "\n";
+    return $out . "\nSitemap: " . sitemap_url() . "\n";
+}
+
 /** Partes do sitemap: chave => [nome, quantidade, última atualização] */
 function sitemap_groups(): array
 {
