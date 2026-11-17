@@ -538,6 +538,31 @@
     });
   });
 
+  /* ---------- Compartilhar ---------- */
+  var sm = $('#share-modal');
+  if (sm) {
+    var sd = {}; try { sd = JSON.parse($('#share-data').textContent); } catch (e) {}
+    var nat = $('[data-share-native]', sm);
+    if (navigator.share && nat) nat.hidden = false;
+    $$('[data-share]').forEach(function (b) {
+      b.addEventListener('click', function () { openModal(sm); });
+    });
+    if (nat) nat.addEventListener('click', function () {
+      navigator.share({ title: sd.title, text: sd.text, url: sd.url }).then(function () { closeModal(sm); }).catch(function () {});
+    });
+    var copyBtn = $('[data-share-copy]', sm), inp = $('[data-share-url]', sm);
+    inp.addEventListener('focus', function () { inp.select(); });
+    copyBtn.addEventListener('click', function () {
+      var done = function () { toast('Link copiado!'); };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(inp.value).then(done, function () { inp.select(); document.execCommand('copy'); done(); });
+      } else { inp.focus(); inp.select(); try { document.execCommand('copy'); done(); } catch (e) { toast('Segure o link para copiar'); } }
+    });
+    $$('[data-share-to]', sm).forEach(function (a) {
+      a.addEventListener('click', function () { setTimeout(function () { closeModal(sm); }, 300); });
+    });
+  }
+
   $$('[data-report]').forEach(function (b) {
     b.addEventListener('click', function () { var m = $('#report-modal'); if (m) openModal(m); });
   });

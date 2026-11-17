@@ -131,6 +131,7 @@ require __DIR__ . '/includes/header.php';
         <button class="btn btn-icon<?= $isFav ? ' on' : '' ?>" data-fav="<?= $id ?>" title="Minha Lista" aria-label="Adicionar à Minha Lista">
           <span class="when-off"><?= icon('plus') ?></span><span class="when-on"><?= icon('check') ?></span>
         </button>
+        <button class="btn btn-icon" data-share title="Compartilhar" aria-label="Compartilhar"><?= icon('share') ?></button>
         <?php if (is_admin()): ?>
           <a class="btn btn-icon" href="<?= e(url('admin/conteudo.php?id=' . $id)) ?>" title="Editar no painel"><?= icon('edit') ?></a>
         <?php endif; ?>
@@ -236,6 +237,46 @@ require __DIR__ . '/includes/header.php';
     <div class="ratio"></div>
   </div>
 </div>
+
+<?php
+$shareText = 'Assista ' . $c['title'] . ($c['year'] ? ' (' . $c['year'] . ')' : '') . ' no ' . site_name();
+$shareTo = [
+    'whatsapp' => ['WhatsApp', 'https://wa.me/?text=' . rawurlencode($shareText . ' ' . $canonical)],
+    'telegram' => ['Telegram', 'https://t.me/share/url?url=' . rawurlencode($canonical) . '&text=' . rawurlencode($shareText)],
+    'facebook' => ['Facebook', 'https://www.facebook.com/sharer/sharer.php?u=' . rawurlencode($canonical)],
+    'x'        => ['X', 'https://x.com/intent/post?text=' . rawurlencode($shareText) . '&url=' . rawurlencode($canonical)],
+];
+$shareLogos = [
+    'whatsapp' => '<path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.3-.5.1-1 .1-1.7-.1-.4-.1-.9-.3-1.5-.6-2.7-1.2-4.4-3.9-4.6-4.1-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.1.1.3 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.7 1.2 1.6 2 1.1 1 2 1.3 2.3 1.4.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.6-.1 1.2z"/>',
+    'telegram' => '<path d="M21.9 4.3 18.7 19.4c-.2 1-.9 1.3-1.8.8l-4.8-3.6-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8.1c.4-.3-.1-.5-.6-.2L6.4 13.1l-4.7-1.5c-1-.3-1-1 .2-1.5L20.5 3c.9-.3 1.6.2 1.4 1.3z"/>',
+    'facebook' => '<path d="M14 8V6.2c0-.9.2-1.4 1.6-1.4H17V2.1C16.7 2 15.8 2 14.8 2 12.5 2 11 3.4 11 5.9V8H8.5v3H11v11h3V11h2.6l.4-3z"/>',
+    'x'        => '<path d="M17.8 3h3.1l-6.8 7.7L22 21h-6.2l-4.9-6.4L5.3 21H2.2l7.2-8.3L1.8 3h6.4l4.4 5.8zm-1.1 16.2h1.7L7.4 4.7H5.6z"/>',
+];
+?>
+<div class="modal" id="share-modal" hidden>
+  <div class="modal-box share-box">
+    <button class="modal-close" aria-label="Fechar"><?= icon('close') ?></button>
+    <h3>Compartilhar</h3>
+    <div class="share-head">
+      <img src="<?= e(img($c['poster'], 'w185')) ?>" width="54" height="81" loading="lazy" alt="">
+      <div><b><?= e($c['title']) ?></b><small><?= e(type_label($c['type'] ?? 'movie')) ?><?= $c['year'] ? ' · ' . (int)$c['year'] : '' ?></small></div>
+    </div>
+    <div class="share-grid">
+      <?php foreach ($shareTo as $k => [$name, $href]): ?>
+        <a class="share-to share-<?= $k ?>" href="<?= e($href) ?>" target="_blank" rel="noopener nofollow" data-share-to="<?= $k ?>">
+          <span><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><?= $shareLogos[$k] ?></svg></span><?= e($name) ?>
+        </a>
+      <?php endforeach; ?>
+      <a class="share-to share-mail" href="mailto:?subject=<?= e(rawurlencode($shareText)) ?>&amp;body=<?= e(rawurlencode($shareText . "\n" . $canonical)) ?>" data-share-to="email"><span><?= icon('mail') ?></span>E-mail</a>
+      <button type="button" class="share-to share-more" data-share-native hidden><span><?= icon('share') ?></span>Mais</button>
+    </div>
+    <div class="share-link">
+      <input type="text" value="<?= e($canonical) ?>" readonly aria-label="Link do título" data-share-url>
+      <button type="button" class="btn btn-red btn-sm" data-share-copy><?= icon('link') ?> Copiar</button>
+    </div>
+  </div>
+</div>
+<script type="application/json" id="share-data"><?= json_encode(['title' => $c['title'], 'text' => $shareText, 'url' => $canonical], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?></script>
 
 <div class="modal" id="report-modal" hidden>
   <div class="modal-box">

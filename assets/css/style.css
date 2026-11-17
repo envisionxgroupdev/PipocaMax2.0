@@ -535,3 +535,25 @@ body.ann-has-bottom { padding-bottom: var(--ann-b, 0px); }
 @keyframes annFade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes annPop { from { transform: translateY(14px) scale(.97); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (max-width: 600px) { .ann-inner { padding: 7px 38px 7px 12px; font-size: 12.5px; justify-content: flex-start; text-align: left; gap: 6px 10px; flex-wrap: nowrap; } .ann-text { flex: 1; min-width: 0; } .ann-bar .ann-btn { font-size: 12px; padding: 4px 10px; } .ann-x { right: 2px; font-size: 22px; } }
+
+/* Compartilhar */
+.share-box { max-width: 460px; box-sizing: border-box; min-width: 0; }
+.share-head { display: flex; gap: 12px; align-items: center; margin: -4px 0 18px; }
+.share-head img { width: 54px; height: 81px; object-fit: cover; border-radius: 6px; background: #222; flex: none; }
+.share-head b { display: block; font-size: 16px; line-height: 1.3; }
+.share-head small { color: var(--muted, #999); font-size: 13px; }
+.share-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-bottom: 18px; }
+.share-to { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px 4px; border-radius: 10px; background: #222; border: 1px solid #2c2c2c; color: #ddd; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer; font-family: inherit; transition: background .15s, border-color .15s; }
+.share-to:hover { background: #2a2a2a; border-color: #444; color: #fff; }
+.share-to span { width: 42px; height: 42px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: #3a3a3a; }
+.share-to span .ico { width: 20px; height: 20px; }
+.share-whatsapp span { background: #25d366; }
+.share-telegram span { background: #229ed9; }
+.share-facebook span { background: #1877f2; }
+.share-x span { background: #000; border: 1px solid #444; }
+.share-mail span { background: #555; }
+.share-to[hidden] { display: none; }
+.share-link { display: flex; gap: 8px; }
+.share-link input { flex: 1; min-width: 0; height: 40px; padding: 0 12px; border-radius: 6px; border: 1px solid #333; background: #111; color: #ccc; font-size: 13px; }
+.share-link .btn { flex: none; height: 40px; }
+@media (max-width: 480px) { .modal-box.share-box { padding: 22px 18px; } .share-grid { gap: 8px; } }
