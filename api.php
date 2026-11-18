@@ -93,6 +93,22 @@ switch ($action) {
         }
         json_out(['ok' => true]);
 
+    case 'cw_save':
+        // Continuar assistindo (só conta; visitante guarda no próprio navegador)
+        if (!is_post()) json_out(['error' => 'Método inválido'], 405);
+        csrf_check();
+        if ($u = current_user()) {
+            $eid = in_int('e');
+            cw_save((int)$u['id'], in_int('c'), $eid > 0 ? $eid : null, in_int('t'), in_int('d'));
+        }
+        json_out(['ok' => true]);
+
+    case 'cw_remove':
+        if (!is_post()) json_out(['error' => 'Método inválido'], 405);
+        csrf_check();
+        if ($u = current_user()) cw_remove((int)$u['id'], in_int('c'));
+        json_out(['ok' => true]);
+
     case 'favorite':
         if (!is_post()) json_out(['error' => 'Método inválido'], 405);
         csrf_check();

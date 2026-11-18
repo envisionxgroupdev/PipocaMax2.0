@@ -396,6 +396,86 @@
     if (ev.key === 'Escape') $$('.player.expanded').forEach(exitExpanded);
   });
 
+  /* ---------- Continuar assistindo ---------- */
+  // Conta: salva no servidor. Visitante: cookie pm_cw ("conteudo-episodio-segundos-duracao", separados por _)
+  var CW = (function () {
+    var KEY = 'pm_cw', MAX = 20, lastSend = 0, pending = null, timer = null;
+    var read = function () {
+      var m = document.cookie.match(/(?:^|; )pm_cw=([^;]*)/);
+      if (!m) return [];
+      return m[1].split('_').map(function (s) {
+        var p = s.split('-');
+        return p.length === 4 ? { c: +p[0], e: p[1] ? +p[1] : 0, t: +p[2] || 0, d: +p[3] || 0 } : null;
+      }).filter(function (x) { return x && x.c > 0; });
+    };
+    var write = function (list) {
+      var v = list.slice(0, MAX).map(function (x) { return x.c + '-' + (x.e || '') + '-' + Math.floor(x.t || 0) + '-' + Math.floor(x.d || 0); }).join('_');
+      document.cookie = KEY + '=' + v + '; path=' + (PM.base || '') + '/; max-age=' + (v ? 15552000 : 0) + '; samesite=lax';
+    };
+    var send = function (it, now) {
+      pending = it;
+      var go = function () {
+        if (!pending) return;
+        var x = pending; pending = null; lastSend = Date.now();
+        post('cw_save', { c: x.c, e: x.e || 0, t: Math.floor(x.t || 0), d: Math.floor(x.d || 0) }).catch(function () {});
+      };
+      clearTimeout(timer);
+      if (now || Date.now() - lastSend > 20000) go(); else timer = setTimeout(go, 20000);
+    };
+    // Ao sair da página, manda o último tempo que ficou pendente
+    window.addEventListener('pagehide', function () {
+      if (!pending || !navigator.sendBeacon) return;
+      var fd = new FormData(), x = pending; pending = null;
+      fd.append('_csrf', PM.csrf); fd.append('c', x.c); fd.append('e', x.e || 0); fd.append('t', Math.floor(x.t || 0)); fd.append('d', Math.floor(x.d || 0));
+      navigator.sendBeacon(api('action=cw_save'), fd);
+    });
+    return {
+      // it = { c, e, t, d }; sem t = só abriu (mantém onde parou se for o mesmo episódio)
+      put: function (it, now) {
+        if (PM.logged) { send(it, now); return; }
+        var list = read(), old = null;
+        list = list.filter(function (x) { if (x.c === it.c) { old = x; return false; } return true; });
+        if (it.t === undefined) { it.t = old && (old.e || 0) === (it.e || 0) ? old.t : 0; it.d = old && (old.e || 0) === (it.e || 0) ? old.d : 0; }
+        list.unshift(it);
+        write(list);
+      },
+      remove: function (c) {
+        if (PM.logged) { pending = null; clearTimeout(timer); post('cw_remove', { c: c }).catch(function () {}); return; }
+        write(read().filter(function (x) { return x.c !== c; }));
+      }
+    };
+  })();
+  var cwCtx = null; // título aberto agora: { c, e, next() }
+  document.addEventListener('pm:pos', function (ev) {
+    if (!cwCtx) return;
+    var t = ev.detail.t, d = ev.detail.d;
+    if (!d || t < 10) return;
+    if (cwCtx.done === (cwCtx.e || 0)) return; // já marcado como terminado
+    if (t > d - 60) { // terminou
+      cwCtx.done = cwCtx.e || 0;
+      var nx = cwCtx.next ? cwCtx.next() : 0;
+      if (nx) CW.put({ c: cwCtx.c, e: nx, t: 0, d: 0 }, true);
+      else CW.remove(cwCtx.c);
+      return;
+    }
+    CW.put({ c: cwCtx.c, e: cwCtx.e || 0, t: t, d: d });
+  });
+
+  // Fileira da página inicial: botão X tira o título da lista
+  $$('[data-cw-del]').forEach(function (b) {
+    b.addEventListener('click', function (ev) {
+      ev.preventDefault(); ev.stopPropagation();
+      var card = b.closest('.cw-card'), row = b.closest('[data-cw]');
+      CW.remove(+b.dataset.cwDel);
+      card.classList.add('cw-out');
+      setTimeout(function () {
+        card.remove();
+        if (row && !$('.cw-card', row)) row.remove();
+      }, 250);
+      toast('Removido de Continuar assistindo');
+    });
+  });
+
   // Filme
   var watch = $('[data-watch]');
   if (watch) {
@@ -407,6 +487,15 @@
         var a = $('.server.active', sv) || $('.server', sv);
         if (a) a.click();
       });
+      // Continuar assistindo: entra na lista quando começa a ver
+      if (watch.dataset.cid) {
+        cwCtx = { c: +watch.dataset.cid, e: 0 };
+        sv.addEventListener('click', function (ev) { if (ev.target.closest('.server')) CW.put({ c: cwCtx.c, e: 0 }, true); });
+      }
+      // Veio do "Continuar assistindo" da página inicial: já abre o player
+      if (location.hash === '#continuar' && cover) {
+        setTimeout(function () { watch.scrollIntoView({ block: 'center' }); cover.click(); }, 150);
+      }
     }
   }
 
@@ -426,6 +515,13 @@
       (D.episodes[s.id] || []).forEach(function (e) { flat.push({ ep: e, season: s }); });
     });
     var currentEp = null;
+    if (seriesEl.dataset.cid) {
+      cwCtx = { c: +seriesEl.dataset.cid, e: 0, next: function () {
+        var i = flat.findIndex(function (x) { return x.ep.id === cwCtx.e; });
+        var n = i >= 0 ? flat.slice(i + 1).find(function (x) { return x.ep.available; }) : null;
+        return n ? n.ep.id : 0;
+      } };
+    }
 
     var renderSeason = function (sid) {
       var eps = D.episodes[sid] || [];
@@ -460,6 +556,7 @@
       box.innerHTML = '<div class="player-msg"><div class="spinner"></div></div>';
       if (scroll !== false) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
       history.replaceState(null, '', '#ep-' + id);
+      if (cwCtx) { cwCtx.e = id; CW.put({ c: cwCtx.c, e: id }, true); }
       fetch(api('action=episode&id=' + id), { credentials: 'same-origin' })
         .then(function (r) { return r.json(); })
         .then(function (j) {

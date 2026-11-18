@@ -115,6 +115,7 @@ require_once __DIR__ . '/security.php';
 require_once __DIR__ . '/seo.php';
 require_once __DIR__ . '/domain.php';
 require_once __DIR__ . '/announcements.php';
+require_once __DIR__ . '/continue.php';
 
 try {
     db();
@@ -282,5 +283,21 @@ if ((int)setting('db_version', '1') < 15) {
         KEY idx_active (active, sort)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     set_setting('db_version', '15');
+}
+if ((int)setting('db_version', '1') < 16) {
+    // Continuar assistindo (histórico de quem tem conta)
+    q("CREATE TABLE IF NOT EXISTS watch_history (
+        user_id INT UNSIGNED NOT NULL,
+        content_id INT UNSIGNED NOT NULL,
+        episode_id INT UNSIGNED NULL,
+        position INT UNSIGNED NOT NULL DEFAULT 0,
+        duration INT UNSIGNED NOT NULL DEFAULT 0,
+        updated_at DATETIME NOT NULL,
+        PRIMARY KEY (user_id, content_id),
+        KEY idx_user_time (user_id, updated_at),
+        CONSTRAINT fk_wh_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        CONSTRAINT fk_wh_content FOREIGN KEY (content_id) REFERENCES contents(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    set_setting('db_version', '16');
 }
 refresh_current_user();

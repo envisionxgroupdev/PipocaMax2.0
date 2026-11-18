@@ -153,7 +153,7 @@ require __DIR__ . '/includes/header.php';
   </div>
 
 <?php elseif ($isMovie): ?>
-  <section class="watch" data-watch>
+  <section class="watch" data-watch data-cid="<?= $id ?>">
     <div class="watch-head">
       <h2>Assistir <?= e($c['title']) ?></h2>
       <button class="link-btn" data-report data-content="<?= $id ?>"><?= icon('flag') ?> Reportar problema</button>
@@ -188,7 +188,7 @@ require __DIR__ . '/includes/header.php';
   </section>
 
 <?php else: ?>
-  <section class="watch" data-series>
+  <section class="watch" data-series data-cid="<?= $id ?>">
     <div class="player-panel" data-episode-panel hidden>
       <div class="watch-head">
         <h2 data-ep-title></h2>

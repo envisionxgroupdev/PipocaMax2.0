@@ -40,6 +40,7 @@
   var clearPos = function (url) { try { localStorage.removeItem(posKey(url)); } catch (e) {} };
   var savePos = function (url, t, d) {
     if (!d || !isFinite(d) || !t) return; // trocando/fechando o player: não mexe no que já foi salvo
+    try { document.dispatchEvent(new CustomEvent('pm:pos', { detail: { t: Math.floor(t), d: Math.floor(d) } })); } catch (e) {}
     try {
       if (t < 30 || t > d - 60) localStorage.removeItem(posKey(url));
       else localStorage.setItem(posKey(url), JSON.stringify({ t: Math.floor(t), at: Date.now() }));

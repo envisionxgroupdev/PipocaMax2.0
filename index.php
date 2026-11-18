@@ -18,6 +18,10 @@ check_maintenance();
     return [$hero, $releases, $movies, $series, $animes, $top, $channels];
 });
 
+// Continuar assistindo: quem acabou de entrar na conta leva junto o que via como visitante
+if ($u = current_user()) cw_merge_cookie((int)$u['id']);
+$cwRow = cw_render_row();
+
 $active = 'home';
 $bodyClass = 'has-hero';
 $canonical = site_url();
@@ -81,6 +85,7 @@ require __DIR__ . '/includes/header.php';
 <?php endif; ?>
 
 <div class="rows">
+  <?= $cwRow ?>
   <?= ad_slot('home_top') ?>
   <?= render_row('Lançamentos', $releases, page_url('lancamentos'), 'lancamentos') ?>
   <?= render_row('Em alta no ' . site_name(), $top) ?>
