@@ -20,6 +20,7 @@ $nav = [
     'series' => [page_url('series'), 'Séries', 'series'],
     'anime' => [page_url('animes'), 'Animes', 'anime'],
     'tv' => [page_url('tv'), 'TV Online', 'live'],
+    'pedidos' => [page_url('pedidos'), 'Pedidos', 'plus'],
 ];
 ?><!doctype html>
 <html lang="pt-BR">
@@ -94,6 +95,7 @@ $nav = [
           <div class="usermenu-drop">
             <div class="usermenu-head"><strong><?= e($user['name']) ?></strong><small><?= e($user['email']) ?></small></div>
             <a href="<?= e(page_url('minha-lista')) ?>"><?= icon('heart') ?> Minha Lista</a>
+            <a href="<?= e(page_url('pedidos', 'aba=meus')) ?>"><?= icon('plus') ?> Meus pedidos</a>
             <a href="<?= e(page_url('conta')) ?>"><?= icon('user') ?> Minha conta</a>
             <?php if (is_admin()): ?><a href="<?= e(url('admin/')) ?>"><?= icon('settings') ?> Painel administrativo</a><?php endif; ?>
             <a href="<?= e(url('logout.php?t=' . csrf_token())) ?>"><?= icon('logout') ?> Sair</a>

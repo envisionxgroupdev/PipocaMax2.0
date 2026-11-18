@@ -109,6 +109,28 @@ switch ($action) {
         if ($u = current_user()) cw_remove((int)$u['id'], in_int('c'));
         json_out(['ok' => true]);
 
+    case 'req_search':
+        // Pedidos: busca no TMDB (limite por pessoa para não gastar a cota da chave)
+        $hits = array_filter($_SESSION['req_hits'] ?? [], fn($t) => $t > time() - 60);
+        if (count($hits) >= 20) json_out(['error' => 'Muitas buscas seguidas. Espere um minuto.'], 429);
+        $hits[] = time();
+        $_SESSION['req_hits'] = $hits;
+        $u = current_user();
+        json_out(['results' => req_search(in_str('q'), $u ? (int)$u['id'] : null)]);
+
+    case 'req_add':
+    case 'req_vote':
+        if (!is_post()) json_out(['error' => 'Método inválido'], 405);
+        csrf_check();
+        $u = current_user();
+        if (!$u) json_out(['error' => 'Entre na sua conta para pedir.', 'login' => true], 401);
+        try {
+            if ($action === 'req_add') json_out(['ok' => true] + req_add((int)$u['id'], in_int('tmdb_id'), in_str('media')));
+            json_out(['ok' => true] + req_vote((int)$u['id'], in_int('id'), in_int('on') === 1));
+        } catch (Throwable $e) {
+            json_out(['error' => $e instanceof RuntimeException ? $e->getMessage() : 'Não deu certo agora. Tente de novo.'], 422);
+        }
+
     case 'favorite':
         if (!is_post()) json_out(['error' => 'Método inválido'], 405);
         csrf_check();

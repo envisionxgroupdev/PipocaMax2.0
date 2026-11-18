@@ -30,4 +30,5 @@ if ((int)setting('auto_last_run', '0') > time() - $interval + 30) {
     exit("Ainda não deu o intervalo configurado.\n");
 }
 $r = run_autoimport();
+req_sync(); // pedidos que entraram no site por outro caminho
 echo "Importados: {$r['imported']} | Séries atualizadas: {$r['updated']} | Já existiam: {$r['skipped']} | Erros: {$r['errors']}\n";

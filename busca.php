@@ -35,7 +35,8 @@ require __DIR__ . '/includes/header.php';
     <?php if ($items): ?>
       <div class="grid"><?php foreach ($items as $c) echo render_card($c); ?></div>
     <?php elseif (!$channels): ?>
-      <div class="empty"><?= icon('search', 'ico ico-xl') ?><p>Nada encontrado. Tente outro nome.</p></div>
+      <div class="empty"><?= icon('search', 'ico ico-xl') ?><p>Nada encontrado. Tente outro nome.</p>
+        <a class="btn btn-red search-req" href="<?= e(page_url('pedidos', 'q=' . rawurlencode($term))) ?>"><?= icon('plus') ?> Pedir esse título</a></div>
     <?php endif; ?>
   <?php endif; ?>
 </div>

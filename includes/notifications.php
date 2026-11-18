@@ -10,7 +10,7 @@ function notif_list(bool $logged, int $limit = 20): array
     return cache_remember('notif_' . $aud, 300, function () use ($aud, $limit) {
         try {
             return q_all("SELECT id, title, message, link, image, created_at FROM notifications
-                WHERE active = 1 AND audience IN ('all', ?) AND (expires_at IS NULL OR expires_at > NOW())
+                WHERE active = 1 AND audience IN ('all', ?) AND user_id IS NULL AND (expires_at IS NULL OR expires_at > NOW())
                 ORDER BY id DESC LIMIT " . (int)$limit, [$aud]);
         } catch (Throwable $e) {
             return [];
@@ -22,7 +22,7 @@ function notif_create(array $d): int
 {
     $aud = in_array($d['audience'] ?? 'all', ['all', 'users', 'guests'], true) ? $d['audience'] : 'all';
     $days = (int)($d['days'] ?? 0);
-    q('INSERT INTO notifications (title, message, link, image, content_id, audience, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)', [
+    q('INSERT INTO notifications (title, message, link, image, content_id, audience, expires_at, user_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', [
         mb_substr(trim((string)$d['title']), 0, 150),
         trim((string)($d['message'] ?? '')) ?: null,
         clean_url((string)($d['link'] ?? '')) ?: null,
@@ -30,6 +30,7 @@ function notif_create(array $d): int
         ($d['content_id'] ?? null) ?: null,
         $aud,
         $days > 0 ? date('Y-m-d H:i:s', time() + $days * 86400) : null,
+        ($d['user_id'] ?? null) ?: null, // só para essa pessoa (ex.: pedido atendido)
     ]);
     cache_bump();
     return (int)db()->lastInsertId();
@@ -39,6 +40,20 @@ function notif_create(array $d): int
 function notif_bell(?array $user): string
 {
     $list = notif_list((bool)$user);
+    if ($user) {
+        // Avisos só desta pessoa (pedido atendido etc.)
+        try {
+            $mine = q_all('SELECT id, title, message, link, image, created_at FROM notifications
+                WHERE user_id = ? AND active = 1 AND (expires_at IS NULL OR expires_at > NOW()) ORDER BY id DESC LIMIT 10', [$user['id']]);
+        } catch (Throwable $e) {
+            $mine = [];
+        }
+        if ($mine) {
+            $list = array_merge($mine, $list);
+            usort($list, fn($a, $b) => (int)$b['id'] <=> (int)$a['id']);
+            $list = array_slice($list, 0, 20);
+        }
+    }
     $seen = $user ? (int)($user['notif_seen'] ?? 0) : -1; // -1 = visitante (usa o navegador)
     ob_start(); ?>
     <div class="bell" data-seen="<?= $seen ?>" data-last="<?= $list ? (int)$list[0]['id'] : 0 ?>">

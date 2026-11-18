@@ -602,6 +602,103 @@
     });
   }
 
+  /* ---------- Pedidos ---------- */
+  var reqPage = $('[data-req]');
+  if (reqPage) {
+    var I = {
+      plus: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+      check: '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m5 12 5 5L20 7"/></svg>',
+      play: '<svg class="ico" viewBox="0 0 24 24"><path d="M7 4v16l13-8z" fill="currentColor"/></svg>'
+    };
+    var goLogin = function () { location.href = PM.base + '/login.php?voltar=' + encodeURIComponent(location.pathname + location.search); };
+    var plural = function (n) { return n + (n === 1 ? ' pedido' : ' pedidos'); };
+    var form = $('[data-req-form]', reqPage), qIn = $('[data-req-q]', reqPage), out = $('[data-req-results]', reqPage);
+    var voteBtn = function (r) {
+      return '<button type="button" class="btn btn-sm req-vote' + (r.voted ? ' on' : '') + '" data-req-vote="' + r.req_id + '">' +
+        (r.voted ? I.check + ' Pedido' : I.plus + ' Eu também quero') + '</button>';
+    };
+    var renderRes = function (list, term) {
+      if (!list.length) {
+        out.innerHTML = '<div class="empty small"><p>Não encontrei "' + esc(term) + '". Confira se o nome está certo ou tente o nome original.</p></div>';
+        return;
+      }
+      out.innerHTML = '<h2 class="req-sub">Resultados para "' + esc(term) + '"</h2><ol class="req-list">' + list.map(function (r) {
+        var act, info;
+        if (r.url) {
+          info = '<span class="req-tag ok">' + I.check + ' Já está no site</span>';
+          act = '<a class="btn btn-white btn-sm" href="' + esc(r.url) + '">' + I.play + ' Assistir</a>';
+        } else if (r.req_id && r.status === 'rejected') {
+          info = '<span class="req-tag no">Não disponível</span>'; act = '';
+        } else if (r.req_id) {
+          info = '<span class="req-votes" data-req-count="' + r.req_id + '">' + plural(r.votes) + '</span>';
+          act = voteBtn(r);
+        } else {
+          info = '<span class="req-votes muted">Ninguém pediu ainda</span>';
+          act = '<button type="button" class="btn btn-red btn-sm" data-req-add="' + r.tmdb_id + '" data-media="' + r.media + '">' + I.plus + ' Pedir</button>';
+        }
+        return '<li class="req-item">' +
+          (r.poster ? '<img src="' + esc(r.poster) + '" width="60" height="90" loading="lazy" alt="">' : '<span class="req-noimg"></span>') +
+          '<div class="req-info"><b>' + esc(r.title) + '</b><small>' + esc(r.type_name) + (r.year ? ' • ' + esc(r.year) : '') + '</small>' + info + '</div>' +
+          '<div class="req-act">' + act + '</div></li>';
+      }).join('') + '</ol>';
+    };
+    form.addEventListener('submit', function (ev) {
+      ev.preventDefault();
+      var term = qIn.value.trim();
+      if (term.length < 2) { qIn.focus(); return; }
+      out.hidden = false;
+      out.innerHTML = '<div class="req-loading"><div class="spinner"></div></div>';
+      fetch(api('action=req_search&q=' + encodeURIComponent(term)), { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j.error) { out.innerHTML = '<div class="empty small"><p>' + esc(j.error) + '</p></div>'; return; }
+          renderRes(j.results || [], term);
+        })
+        .catch(function () { out.innerHTML = '<div class="empty small"><p>Erro ao buscar. Tente de novo.</p></div>'; });
+    });
+    // Busca vinda de outra página (ex.: "Não achou? Peça aqui" na busca)
+    var pre = new URLSearchParams(location.search).get('q');
+    if (pre) { qIn.value = pre; form.requestSubmit ? form.requestSubmit() : form.dispatchEvent(new Event('submit')); }
+
+    reqPage.addEventListener('click', function (ev) {
+      var add = ev.target.closest('[data-req-add]'), vote = ev.target.closest('[data-req-vote]');
+      if (!add && !vote) return;
+      if (!PM.logged) { goLogin(); return; }
+      var b = add || vote;
+      if (b.disabled) return;
+      b.disabled = true;
+      if (add) {
+        post('req_add', { tmdb_id: add.dataset.reqAdd, media: add.dataset.media }).then(function (j) {
+          b.disabled = false;
+          if (j.login) { goLogin(); return; }
+          if (j.error) { toast(j.error); return; }
+          if (j.already) {
+            if (j.url) b.outerHTML = '<a class="btn btn-white btn-sm" href="' + esc(j.url) + '">' + I.play + ' Assistir</a>';
+            toast('Esse título já está no site!');
+            return;
+          }
+          var li = b.closest('.req-item'), v = $('.req-votes', li);
+          if (v) { v.className = 'req-votes'; v.setAttribute('data-req-count', j.id); v.textContent = plural(j.votes); }
+          b.outerHTML = voteBtn({ req_id: j.id, voted: true });
+          toast('Pedido feito! Você recebe um aviso quando chegar.');
+        }).catch(function () { b.disabled = false; toast('Não deu certo agora. Tente de novo.'); });
+        return;
+      }
+      var on = !vote.classList.contains('on');
+      post('req_vote', { id: vote.dataset.reqVote, on: on ? 1 : 0 }).then(function (j) {
+        b.disabled = false;
+        if (j.login) { goLogin(); return; }
+        if (j.error) { toast(j.error); return; }
+        $$('[data-req-vote="' + vote.dataset.reqVote + '"]', reqPage).forEach(function (x) {
+          x.classList.toggle('on', on);
+          x.innerHTML = on ? I.check + ' Pedido' : I.plus + ' Eu também quero';
+        });
+        $$('[data-req-count="' + vote.dataset.reqVote + '"]', reqPage).forEach(function (x) { x.textContent = plural(j.votes); });
+        toast(on ? 'Pedido feito! Você recebe um aviso quando chegar.' : 'Pedido retirado.');
+      }).catch(function () { b.disabled = false; toast('Não deu certo agora. Tente de novo.'); });
+    });
+  }
+
   /* ---------- Minha Lista ---------- */
   $$('[data-fav]').forEach(function (b) {
     b.addEventListener('click', function () {

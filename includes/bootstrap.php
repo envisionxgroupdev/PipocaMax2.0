@@ -116,6 +116,7 @@ require_once __DIR__ . '/seo.php';
 require_once __DIR__ . '/domain.php';
 require_once __DIR__ . '/announcements.php';
 require_once __DIR__ . '/continue.php';
+require_once __DIR__ . '/requests.php';
 
 try {
     db();
@@ -299,5 +300,40 @@ if ((int)setting('db_version', '1') < 16) {
         CONSTRAINT fk_wh_content FOREIGN KEY (content_id) REFERENCES contents(id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     set_setting('db_version', '16');
+}
+if ((int)setting('db_version', '1') < 17) {
+    // Pedidos de títulos + avisos só para uma pessoa no sininho
+    q("CREATE TABLE IF NOT EXISTS requests (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        tmdb_id INT UNSIGNED NOT NULL,
+        media VARCHAR(5) NOT NULL,
+        type VARCHAR(10) NOT NULL DEFAULT 'movie',
+        title VARCHAR(255) NOT NULL,
+        original_title VARCHAR(255) NULL,
+        year SMALLINT UNSIGNED NULL,
+        poster VARCHAR(255) NULL,
+        votes INT UNSIGNED NOT NULL DEFAULT 0,
+        status VARCHAR(10) NOT NULL DEFAULT 'pending',
+        note VARCHAR(255) NULL,
+        content_id INT UNSIGNED NULL,
+        user_id INT UNSIGNED NULL,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME NOT NULL,
+        done_at DATETIME NULL,
+        UNIQUE KEY uq_req (tmdb_id, media),
+        KEY idx_status (status, votes)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    q("CREATE TABLE IF NOT EXISTS request_votes (
+        request_id INT UNSIGNED NOT NULL,
+        user_id INT UNSIGNED NOT NULL,
+        created_at DATETIME NOT NULL,
+        PRIMARY KEY (request_id, user_id),
+        KEY idx_user (user_id, created_at),
+        CONSTRAINT fk_rv_req FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE CASCADE,
+        CONSTRAINT fk_rv_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    try { q('ALTER TABLE notifications ADD COLUMN user_id INT UNSIGNED NULL'); } catch (Throwable $e) { /* já existe */ }
+    try { q('ALTER TABLE notifications ADD KEY idx_user (user_id)'); } catch (Throwable $e) { }
+    set_setting('db_version', '17');
 }
 refresh_current_user();

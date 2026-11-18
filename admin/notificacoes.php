@@ -23,7 +23,7 @@ if (is_post()) {
     redirect('admin/notificacoes.php');
 }
 
-$rows = q_all('SELECT * FROM notifications ORDER BY id DESC LIMIT 200');
+$rows = q_all('SELECT * FROM notifications WHERE user_id IS NULL ORDER BY id DESC LIMIT 200');
 $recent = q_all('SELECT id, title, type, year, slug, backdrop, poster FROM contents WHERE status = ? ORDER BY id DESC LIMIT 300', ['published']);
 $typeName = ['movie' => 'Filme', 'series' => 'Série', 'anime' => 'Anime'];
 $audName = ['all' => 'Todos', 'users' => 'Só registrados', 'guests' => 'Só visitantes'];

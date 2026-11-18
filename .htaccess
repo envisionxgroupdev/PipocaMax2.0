@@ -31,7 +31,7 @@ ServerSignature Off
   RewriteRule ^canal/([a-z0-9-]+)/?$ canal.php?slug=$1 [L,QSA]
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule ^(filmes|series|animes|lancamentos|tv|busca|login|cadastro|conta|minha-lista)/?$ $1.php [L,QSA]
+  RewriteRule ^(filmes|series|animes|lancamentos|tv|busca|login|cadastro|conta|minha-lista|pedidos)/?$ $1.php [L,QSA]
 </IfModule>
 
 <FilesMatch "^(config\.php|database\.sql|LEIA-ME\.md)$">

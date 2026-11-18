@@ -700,3 +700,29 @@ body.ann-has-bottom { padding-bottom: var(--ann-b, 0px); }
 .rb-preview { margin: 6px 0 16px; }
 .rb-preview summary { cursor: pointer; font-weight: 600; padding: 6px 0; }
 .rb-preview pre { max-height: 360px; overflow: auto; background: #0d0d0d; border: 1px solid var(--line, #2a2a2a); border-radius: 8px; padding: 12px; font-size: 12px; line-height: 1.5; white-space: pre-wrap; }
+
+/* Pedidos */
+.req-admin { display: grid; gap: 8px; margin-top: 12px; }
+.req-a-item { display: flex; align-items: center; gap: 14px; padding: 10px 14px; border: 1px solid var(--line, #2a2a2a); border-radius: 10px; background: rgba(255,255,255,.02); }
+.req-a-rank { width: 24px; text-align: center; font-weight: 800; color: #666; flex: none; }
+.req-a-item:nth-child(-n+3) .req-a-rank { color: var(--red, #e50914); }
+.req-a-item img { width: 46px; height: 69px; object-fit: cover; border-radius: 5px; background: #222; flex: none; }
+.req-a-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.req-a-info b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.req-a-info small { font-size: 12px; color: var(--muted, #8a8a8a); }
+.req-a-info a { color: inherit; text-decoration: underline; }
+.req-a-votes { text-align: center; flex: none; min-width: 60px; }
+.req-a-votes b { display: block; font-size: 22px; line-height: 1; }
+.req-a-votes small { font-size: 11px; color: var(--muted, #8a8a8a); }
+.req-a-act { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; flex: none; }
+.req-a-rej { position: relative; }
+.req-a-rej summary { list-style: none; cursor: pointer; }
+.req-a-rej summary::-webkit-details-marker { display: none; }
+.req-a-rej[open] form { position: absolute; right: 0; top: calc(100% + 6px); z-index: 20; display: flex; gap: 6px; padding: 10px; background: #1b1b1b; border: 1px solid #333; border-radius: 8px; width: 330px; box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.req-a-rej form input { flex: 1; min-width: 0; }
+@media (max-width: 700px) {
+  .req-a-item { flex-wrap: wrap; gap: 10px; }
+  .req-a-info { flex-basis: calc(100% - 150px); }
+  .req-a-act { width: 100%; justify-content: flex-start; }
+  .req-a-rej[open] form { left: 0; right: auto; width: min(330px, 80vw); }
+}

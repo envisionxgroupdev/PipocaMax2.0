@@ -9,6 +9,7 @@
       <a href="<?= e(page_url('series')) ?>">Séries</a>
       <a href="<?= e(page_url('animes')) ?>">Animes</a>
       <a href="<?= e(page_url('tv')) ?>">TV Online</a>
+      <a href="<?= e(page_url('pedidos')) ?>">Pedidos</a>
       <?php if (!current_user()): ?><a href="<?= e(page_url('cadastro')) ?>">Criar conta</a><?php endif; ?>
     </nav>
     <p class="footer-text"><?= e(setting('footer_text', '© ' . site_name())) ?></p>

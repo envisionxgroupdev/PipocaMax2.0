@@ -12,12 +12,14 @@ function admin_header(string $title, string $active = ''): void
 {
     $u = current_user();
     $openReports = (int)q_val("SELECT COUNT(*) FROM reports WHERE status = 'open'");
+    $pendingReq = req_pending_count();
     $menu = [
         ['dashboard', 'index.php', 'Dashboard', 'grid'],
         ['conteudos', 'conteudos.php', 'Conteúdos', 'film'],
         ['importar', 'importar.php', 'Importar do TMDB', 'download'],
         ['auto', 'automatico.php', 'Importação automática', 'wrench'],
         ['canais', 'canais.php', 'TV Online', 'live'],
+        ['pedidos', 'pedidos.php', 'Pedidos', 'plus', $pendingReq],
         ['anuncios', 'anuncios.php', 'Anúncios e códigos', 'grid'],
         ['avisos', 'avisos.php', 'Avisos (banners)', 'flag'],
         ['notificacoes', 'notificacoes.php', 'Notificações', 'bell'],

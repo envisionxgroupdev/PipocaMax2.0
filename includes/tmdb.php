@@ -364,6 +364,8 @@ function tmdb_import(int $tmdbId, string $type, bool $withSeasons = true, array 
             }
         }
     }
+    // Alguém tinha pedido esse título? Marca como atendido e avisa no sininho
+    if (function_exists('req_on_imported')) req_on_imported($tmdbId, $type, $id);
     return $id;
 }
 
