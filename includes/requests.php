@@ -143,7 +143,11 @@ function req_fulfill(int $rid, int $contentId): void
     foreach ($voters as $v) {
         notif_create([
             'title' => 'Seu pedido chegou: ' . $c['title'],
-            'message' => req_type_name($c['type']) . ' que você pediu já está no site. Bom filme! 🍿',
+            'message' => [
+                'movie' => 'O filme que você pediu já está no site. Bom filme! 🍿',
+                'series' => 'A série que você pediu já está no site. Boa maratona! 🍿',
+                'anime' => 'O anime que você pediu já está no site. Boa maratona! 🍿',
+            ][$c['type']] ?? 'O título que você pediu já está no site. Aproveite! 🍿',
             'link' => site_url(content_url($c)),
             'image' => $c['backdrop'] ? img($c['backdrop'], 'w300') : ($c['poster'] ? img($c['poster'], 'w185') : ''),
             'content_id' => $contentId,
