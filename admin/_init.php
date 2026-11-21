@@ -22,6 +22,7 @@ function admin_header(string $title, string $active = ''): void
         ['pedidos', 'pedidos.php', 'Pedidos', 'plus', $pendingReq],
         ['anuncios', 'anuncios.php', 'Anúncios e códigos', 'grid'],
         ['avisos', 'avisos.php', 'Avisos (banners)', 'flag'],
+        ['temas', 'temas.php', 'Temas', 'snow'],
         ['notificacoes', 'notificacoes.php', 'Notificações', 'bell'],
         ['videojs', 'videojs.php', 'Player próprio', 'play'],
         ['usuarios', 'usuarios.php', 'Usuários', 'users'],

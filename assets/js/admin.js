@@ -783,3 +783,13 @@ document.querySelectorAll('[data-y]').forEach(function (b) {
   }
 })();
 
+/* Temas: destaca o modo escolhido e mostra as datas só no Automático */
+document.querySelectorAll('.theme-box').forEach(function (f) {
+  var dates = f.querySelector('[data-theme-dates]');
+  var upd = function () {
+    var v = (f.querySelector('input[name=mode]:checked') || {}).value;
+    f.querySelectorAll('.theme-mode').forEach(function (l) { l.classList.toggle('on', l.querySelector('input').checked); });
+    if (dates) dates.hidden = v !== 'auto';
+  };
+  f.addEventListener('change', upd); upd();
+});

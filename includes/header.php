@@ -66,15 +66,17 @@ $nav = [
 <?php endif; ?>
 <?php $cssInline = inline_css('css/style.css'); ?>
 <?php if ($cssInline !== ''): ?><style><?= $cssInline ?></style><?php else: ?><link rel="stylesheet" href="<?= e(asset('css/style.css')) ?>"><?php endif; ?>
+<?= theme_head() ?>
 <?= custom_code('head') ?>
 </head>
-<body class="<?= e($bodyClass ?? '') ?>">
+<body class="<?= e(trim(($bodyClass ?? '') . ' ' . theme_body_class())) ?>">
 <?= custom_code('body') ?>
 <?php $annList = ann_active(); if (!empty($annList['top'])): ?>
 <?= ann_render($annList['top']) ?>
 <script>(function(){var b=document.currentScript.previousElementSibling;try{if(localStorage.getItem('pm_ann_x:'+b.dataset.ann)){b.remove();return;}}catch(e){}document.documentElement.style.setProperty('--ann',b.offsetHeight+'px');})();</script>
 <?php endif; ?>
 <header class="topbar" id="topbar">
+  <?= theme_header_extras() ?>
   <div class="topbar-inner">
     <?= logo_html() ?>
     <nav class="mainnav">

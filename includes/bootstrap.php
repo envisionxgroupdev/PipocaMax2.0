@@ -117,6 +117,7 @@ require_once __DIR__ . '/domain.php';
 require_once __DIR__ . '/announcements.php';
 require_once __DIR__ . '/continue.php';
 require_once __DIR__ . '/requests.php';
+require_once __DIR__ . '/themes.php';
 
 try {
     db();
