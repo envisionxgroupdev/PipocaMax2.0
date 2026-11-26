@@ -23,6 +23,7 @@ function admin_header(string $title, string $active = ''): void
         ['anuncios', 'anuncios.php', 'Anúncios e códigos', 'grid'],
         ['avisos', 'avisos.php', 'Avisos (banners)', 'flag'],
         ['temas', 'temas.php', 'Temas', 'snow'],
+        ['telegram', 'telegram.php', 'Telegram', 'send'],
         ['notificacoes', 'notificacoes.php', 'Notificações', 'bell'],
         ['videojs', 'videojs.php', 'Player próprio', 'play'],
         ['usuarios', 'usuarios.php', 'Usuários', 'users'],

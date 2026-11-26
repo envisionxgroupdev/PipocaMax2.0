@@ -622,3 +622,41 @@ body.ann-has-bottom { padding-bottom: var(--ann-b, 0px); }
   .req-act .btn { width: 100%; justify-content: center; }
   .req-search .btn { padding: 0 14px; }
 }
+
+/* Telegram */
+.tg-head { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: #fff; transition: background .2s, color .2s; }
+.tg-head:hover { background: #229ed9; color: #fff; }
+.tg-btn { background: #229ed9; color: #fff; border: 0; gap: 8px; }
+.tg-btn:hover { background: #1b8cc2; color: #fff; }
+.tg-band { padding: 6px var(--pad) 26px; }
+.tg-band-in { display: flex; align-items: center; gap: 18px; padding: 20px 24px; border-radius: 12px;
+  background: linear-gradient(110deg, rgba(34, 158, 217, .22), rgba(34, 158, 217, .06) 55%, rgba(255, 255, 255, .02)); border: 1px solid rgba(34, 158, 217, .35); }
+.tg-band-ico { width: 56px; height: 56px; border-radius: 50%; background: #229ed9; color: #fff; display: grid; place-items: center; flex: none; box-shadow: 0 6px 20px rgba(34, 158, 217, .35); }
+.tg-band-ico .tg-logo { margin-left: -3px; }
+.tg-band-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.tg-band-txt b { font-size: 18px; }
+.tg-band-txt span { color: #c9c9c9; font-size: 14px; line-height: 1.4; }
+.tg-band .tg-btn { flex: none; height: 44px; padding: 0 20px; font-weight: 700; }
+.tg-line { display: flex; align-items: center; gap: 10px; margin-top: 12px; padding: 11px 14px; border-radius: 8px; background: rgba(34, 158, 217, .1); border: 1px solid rgba(34, 158, 217, .25); color: #ddd; font-size: 14px; transition: background .2s; }
+.tg-line:hover { background: rgba(34, 158, 217, .18); color: #fff; }
+.tg-line .tg-logo { color: #229ed9; flex: none; }
+.tg-line span { flex: 1; min-width: 0; }
+.tg-line em { font-style: normal; font-weight: 700; color: #4cb8ec; white-space: nowrap; }
+.tg-foot { align-self: flex-start; height: 36px; padding: 0 16px; font-size: 13px; }
+.tg-float { position: fixed; right: 18px; bottom: 18px; z-index: 55; width: 54px; height: 54px; border-radius: 50%; background: #229ed9; color: #fff; display: grid; place-items: center; box-shadow: 0 8px 24px rgba(0, 0, 0, .45); transition: transform .2s; }
+.tg-float:hover { transform: scale(1.08); color: #fff; }
+.tg-float .tg-logo { margin-left: -2px; }
+.tg-float-on .xmas-snow-btn { bottom: 84px; }
+@media (max-width: 900px) {
+  .tg-float { bottom: calc(76px + env(safe-area-inset-bottom)); right: 12px; width: 48px; height: 48px; }
+  .tg-float-on .xmas-snow-btn { bottom: calc(132px + env(safe-area-inset-bottom)); }
+  .tg-head { width: 34px; height: 34px; }
+}
+@media (max-width: 640px) {
+  .tg-band-in { flex-wrap: wrap; gap: 14px; padding: 18px; }
+  .tg-band-ico { width: 46px; height: 46px; }
+  .tg-band-txt { flex-basis: calc(100% - 64px); }
+  .tg-band-txt b { font-size: 16px; }
+  .tg-band .tg-btn { width: 100%; justify-content: center; }
+  .tg-line { font-size: 13px; }
+}

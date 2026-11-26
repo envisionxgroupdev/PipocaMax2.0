@@ -182,6 +182,7 @@ require __DIR__ . '/includes/header.php';
         </div>
       </div>
       <?= ad_slot('player_below') ?>
+      <?= tg_render('title') ?>
     <?php else: ?>
       <div class="empty small"><p>Nenhum player disponível para este filme ainda. Volte em breve!</p></div>
     <?php endif; ?>
@@ -202,6 +203,7 @@ require __DIR__ . '/includes/header.php';
       <?= ad_slot('player_above') ?>
       <div class="player" data-player-box data-poster="<?= e(img($c['backdrop'] ?: $c['poster'], 'w1280')) ?>"></div>
       <?= ad_slot('player_below') ?>
+      <?= tg_render('title') ?>
     </div>
 
     <?php if ($seasons): ?>

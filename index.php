@@ -89,6 +89,7 @@ require __DIR__ . '/includes/header.php';
   <?= ad_slot('home_top') ?>
   <?= render_row('Lançamentos', $releases, page_url('lancamentos'), 'lancamentos') ?>
   <?= render_row('Em alta no ' . site_name(), $top) ?>
+  <?= tg_render('home') ?>
   <?= ad_slot('home_middle') ?>
   <?= render_row('Filmes', $movies, page_url('filmes'), 'filmes') ?>
   <?= render_row('Séries', $series, page_url('series'), 'series') ?>

@@ -69,7 +69,7 @@ $nav = [
 <?= theme_head() ?>
 <?= custom_code('head') ?>
 </head>
-<body class="<?= e(trim(($bodyClass ?? '') . ' ' . theme_body_class())) ?>">
+<body class="<?= e(trim(($bodyClass ?? '') . ' ' . theme_body_class() . (tg_on('float') ? ' tg-float-on' : ''))) ?>">
 <?= custom_code('body') ?>
 <?php $annList = ann_active(); if (!empty($annList['top'])): ?>
 <?= ann_render($annList['top']) ?>
@@ -90,6 +90,7 @@ $nav = [
         <button type="button" class="search-toggle" aria-label="Buscar"><?= icon('search') ?></button>
         <input type="search" name="q" placeholder="Títulos, gêneros..." value="<?= e($_GET['q'] ?? '') ?>" autocomplete="off">
       </form>
+      <?= tg_render('header') ?>
       <?= notif_bell($user) ?>
       <?php if ($user): ?>
         <div class="usermenu">
