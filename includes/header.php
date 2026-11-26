@@ -90,7 +90,6 @@ $nav = [
         <button type="button" class="search-toggle" aria-label="Buscar"><?= icon('search') ?></button>
         <input type="search" name="q" placeholder="Títulos, gêneros..." value="<?= e($_GET['q'] ?? '') ?>" autocomplete="off">
       </form>
-      <?= tg_render('header') ?>
       <?= notif_bell($user) ?>
       <?php if ($user): ?>
         <div class="usermenu">

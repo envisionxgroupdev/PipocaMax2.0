@@ -1,6 +1,6 @@
 <?php
 /**
- * Chamadas para o grupo do Telegram (topo, página inicial, página do título, rodapé e botão flutuante).
+ * Chamadas para o grupo do Telegram (página inicial, página do título, rodapé e botão flutuante).
  * Configura em Painel › Telegram.
  */
 
@@ -10,7 +10,6 @@ function tg_places(): array
 {
     // chave => [nome, explicação, padrão]
     return [
-        'header' => ['Ícone no topo', 'Ícone do Telegram ao lado do sininho, em todas as páginas.', '1'],
         'home' => ['Faixa na página inicial', 'Uma faixa com convite entre as fileiras de títulos.', '1'],
         'title' => ['Convite embaixo do player', 'Linha discreta embaixo do player de filmes, séries e animes.', '1'],
         'footer' => ['Botão no rodapé', 'Botão “Entre no Telegram” no rodapé do site.', '1'],
@@ -54,8 +53,6 @@ function tg_render(string $place): string
     $u = e(tg_url());
     $a = 'href="' . $u . '" target="_blank" rel="noopener" data-tg="' . $place . '"';
     switch ($place) {
-        case 'header':
-            return '<a class="tg-head" ' . $a . ' title="Grupo do Telegram" aria-label="Grupo do Telegram">' . tg_logo(19) . '</a>';
         case 'home':
             return '<section class="tg-band"><div class="tg-band-in">'
                 . '<span class="tg-band-ico">' . tg_logo(30) . '</span>'
