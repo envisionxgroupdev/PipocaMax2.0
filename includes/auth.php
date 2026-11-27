@@ -10,12 +10,26 @@ function refresh_current_user(): void
     if (empty($_SESSION['uid'])) {
         return;
     }
-    $u = q_one('SELECT id, name, email, role, status, avatar_color, notif_seen FROM users WHERE id = ?', [(int)$_SESSION['uid']]);
+    $u = q_one('SELECT id, name, email, role, status, avatar_color, notif_seen, password FROM users WHERE id = ?', [(int)$_SESSION['uid']]);
     if (!$u || $u['status'] !== 'active') {
-        unset($_SESSION['uid']);
+        unset($_SESSION['uid'], $_SESSION['pwh']);
         return;
     }
+    // Senha trocada (por você ou pelo admin): as outras sessões abertas dessa conta caem
+    $pwh = pw_fingerprint((string)$u['password']);
+    if (!isset($_SESSION['pwh'])) {
+        $_SESSION['pwh'] = $pwh; // sessão aberta antes desta proteção existir
+    } elseif (!hash_equals($_SESSION['pwh'], $pwh)) {
+        unset($_SESSION['uid'], $_SESSION['pwh']);
+        return;
+    }
+    unset($u['password']);
     $GLOBALS['PM_USER'] = $u;
+}
+
+function pw_fingerprint(string $hash): string
+{
+    return substr(hash('sha256', 'pm-session|' . $hash), 0, 24);
 }
 
 function current_user(): ?array
@@ -33,6 +47,7 @@ function login_user(array $user): void
 {
     session_regenerate_id(true);
     $_SESSION['uid'] = (int)$user['id'];
+    $_SESSION['pwh'] = pw_fingerprint((string)q_val('SELECT password FROM users WHERE id = ?', [(int)$user['id']]));
     q('UPDATE users SET last_login = NOW() WHERE id = ?', [(int)$user['id']]);
     refresh_current_user();
 }
@@ -104,7 +119,9 @@ function require_user(): void
 /** Só permite voltar para caminhos internos */
 function safe_back(string $back): string
 {
-    if ($back === '' || !str_starts_with($back, '/') || str_starts_with($back, '//')) {
+    // Só caminhos do próprio site. "/\\outro.com" e caracteres de controle viram "//outro.com" no navegador.
+    if ($back === '' || !str_starts_with($back, '/') || str_starts_with($back, '//')
+        || strpbrk($back, "\\\r\n\t\0") !== false || preg_match('~^/[^/?#]*%(2f|5c)~i', $back)) {
         return url('index.php');
     }
     return $back;

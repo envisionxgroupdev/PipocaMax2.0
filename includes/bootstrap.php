@@ -71,6 +71,7 @@ if (session_status() === PHP_SESSION_NONE) {
     ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');
     $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    if ($secure && !headers_sent()) header('Strict-Transport-Security: max-age=15552000');
     session_name('pipocamax');
     session_set_cookie_params([
         'lifetime' => 0,

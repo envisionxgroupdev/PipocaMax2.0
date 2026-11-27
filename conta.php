@@ -19,7 +19,10 @@ if (is_post()) {
     if (!$errors) {
         q('UPDATE users SET name = ? WHERE id = ?', [mb_substr($name, 0, 120), $u['id']]);
         if ($new !== '') {
-            q('UPDATE users SET password = ? WHERE id = ?', [password_hash($new, PASSWORD_DEFAULT), $u['id']]);
+            $newHash = password_hash($new, PASSWORD_DEFAULT);
+            q('UPDATE users SET password = ? WHERE id = ?', [$newHash, $u['id']]);
+            session_regenerate_id(true);
+            $_SESSION['pwh'] = pw_fingerprint($newHash); // esta sessão continua; as outras caem
         }
         flash('success', 'Dados atualizados.');
         redirect('conta.php');

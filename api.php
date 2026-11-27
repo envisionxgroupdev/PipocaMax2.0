@@ -112,9 +112,10 @@ switch ($action) {
     case 'req_search':
         // Pedidos: busca no TMDB (limite por pessoa para não gastar a cota da chave)
         $hits = array_filter($_SESSION['req_hits'] ?? [], fn($t) => $t > time() - 60);
-        if (count($hits) >= 20) json_out(['error' => 'Muitas buscas seguidas. Espere um minuto.'], 429);
+        if (count($hits) >= 20 || sec_count('req_search', 60) >= 30) json_out(['error' => 'Muitas buscas seguidas. Espere um minuto.'], 429);
         $hits[] = time();
         $_SESSION['req_hits'] = $hits;
+        sec_hit('req_search');
         $u = current_user();
         json_out(['results' => req_search(in_str('q'), $u ? (int)$u['id'] : null)]);
 
@@ -153,7 +154,7 @@ switch ($action) {
         if (!is_post()) json_out(['error' => 'Método inválido'], 405);
         csrf_check();
         $last = $_SESSION['last_report'] ?? 0;
-        if (time() - $last < 30) {
+        if (time() - $last < 30 || sec_count('report', 3600) >= 10) {
             json_out(['error' => 'Aguarde alguns segundos antes de enviar outro aviso.'], 429);
         }
         $msg = mb_substr(trim(in_str('message') . (in_str('details') !== '' ? ' — ' . in_str('details') : '')), 0, 500);
@@ -164,6 +165,7 @@ switch ($action) {
         q('INSERT INTO reports (content_id, episode_id, channel_id, user_id, message) VALUES (?, ?, ?, ?, ?)',
             [$cid, $eid, $chid, current_user()['id'] ?? null, $msg]);
         $_SESSION['last_report'] = time();
+        sec_hit('report');
         json_out(['ok' => true]);
 
     case 'ping':
